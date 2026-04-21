@@ -330,9 +330,14 @@ input::placeholder, textarea::placeholder { color: var(--text-light); }
 .modal-overlay {
   position: fixed; inset: 0;
   background: rgba(22, 43, 34, 0.7);
-  backdrop-filter: blur(4px);
   display: flex; align-items: center; justify-content: center;
   z-index: 100;
+}
+.modal-overlay::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  backdrop-filter: blur(4px);
 }
 .modal {
   background: var(--surface);
