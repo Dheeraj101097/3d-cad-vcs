@@ -4,7 +4,8 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "nodemon server.js"
+    "dev": "nodemon server.js",
+    "devdev": "dotenv -e .env.development nodemon server.js"
   },
   "dependencies": {
     "adm-zip": "^0.5.17",
@@ -23,6 +24,7 @@
     "ws": "^8.20.0"
   },
   "devDependencies": {
+    "dotenv-cli": "^7.4.2",
     "nodemon": "^3.0.1"
   }
 }

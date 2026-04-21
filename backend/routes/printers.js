@@ -14,7 +14,7 @@ router.use(protect);
 // ── CRUD for printers ────────────────────────────────────────────────────────
 
 router.get('/', async (req, res) => {
-  const printers = await Printer.find().populate('addedBy', 'name');
+  const printers = await Printer.find().select('-__v').populate('addedBy', 'name').lean();
   res.json(printers);
 });
 
@@ -39,7 +39,7 @@ router.delete('/:id', async (req, res) => {
 
 // ── List SD card files ───────────────────────────────────────────────────────
 router.get('/:id/sdcard', async (req, res) => {
-  const printer = await Printer.findById(req.params.id);
+  const printer = await Printer.findById(req.params.id).lean();
   if (!printer) return res.status(404).json({ message: 'Printer not found' });
 
   const agents = req.app.get('agents');
@@ -76,7 +76,7 @@ router.get('/:id/sdcard', async (req, res) => {
 
 // ── Delete file from SD card ─────────────────────────────────────────────────
 router.delete('/:id/sdcard/:filename', async (req, res) => {
-  const printer = await Printer.findById(req.params.id);
+  const printer = await Printer.findById(req.params.id).lean();
   if (!printer) return res.status(404).json({ message: 'Printer not found' });
 
   const agents = req.app.get('agents');
@@ -111,7 +111,7 @@ router.delete('/:id/sdcard/:filename', async (req, res) => {
 });
 
 router.get('/:id/status', async (req, res) => {
-  const printer = await Printer.findById(req.params.id);
+  const printer = await Printer.findById(req.params.id).lean();
   if (!printer) return res.status(404).json({ message: 'Printer not found' });
 
   try {
@@ -124,8 +124,8 @@ router.get('/:id/status', async (req, res) => {
 
 // ── Step 1: Upload file to printer SD card only ─────────────────────────────
 router.post('/:printerId/upload/:versionId', async (req, res) => {
-  const printer = await Printer.findById(req.params.printerId);
-  const version = await GCodeVersion.findById(req.params.versionId);
+  const printer = await Printer.findById(req.params.printerId).lean();
+  const version = await GCodeVersion.findById(req.params.versionId).select('filePath originalName fileType').lean();
 
   if (!printer) return res.status(404).json({ message: 'Printer not found' });
   if (!version) return res.status(404).json({ message: 'Version not found' });
@@ -159,7 +159,7 @@ router.post('/:printerId/upload/:versionId', async (req, res) => {
 
 // ── Step 2: Start print for an already-uploaded file ────────────────────────
 router.post('/:printerId/startprint', async (req, res) => {
-  const printer = await Printer.findById(req.params.printerId);
+  const printer = await Printer.findById(req.params.printerId).lean();
   if (!printer) return res.status(404).json({ message: 'Printer not found' });
 
   const { remoteFileName, versionId, useAms = false, bedLeveling = true, timelapse = false } = req.body;
@@ -191,8 +191,8 @@ router.post('/:printerId/startprint', async (req, res) => {
 // ── Combined (legacy) ────────────────────────────────────────────────────────
 
 router.post('/:printerId/print/:versionId', async (req, res) => {
-  const printer = await Printer.findById(req.params.printerId);
-  const version = await GCodeVersion.findById(req.params.versionId);
+  const printer = await Printer.findById(req.params.printerId).lean();
+  const version = await GCodeVersion.findById(req.params.versionId).select('filePath originalName fileType gcodePreviewPath _id').lean();
 
   if (!printer) return res.status(404).json({ message: 'Printer not found' });
   if (!version) return res.status(404).json({ message: 'Version not found' });

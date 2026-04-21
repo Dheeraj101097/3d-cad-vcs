@@ -64,8 +64,10 @@ router.use(protect);
 // Get all versions for a part
 router.get('/part/:partId', async (req, res) => {
   const versions = await GCodeVersion.find({ part: req.params.partId })
+    .select('-__v')
     .populate('uploadedBy', 'name')
-    .sort({ versionNumber: -1 });
+    .sort({ versionNumber: -1 })
+    .lean();
   res.json(versions);
 });
 
@@ -78,9 +80,9 @@ router.post('/part/:partId', upload.single('file'), async (req, res) => {
     // Mark previous versions as not latest
     await GCodeVersion.updateMany({ part: partId }, { isLatest: false });
 
-    // Get next version number
-    const count = await GCodeVersion.countDocuments({ part: partId });
-    const versionNumber = count + 1;
+    // Get next version number from highest existing versionNumber (single indexed read)
+    const latest = await GCodeVersion.findOne({ part: partId }).sort({ versionNumber: -1 }).select('versionNumber').lean();
+    const versionNumber = (latest?.versionNumber ?? 0) + 1;
     const version = `v${versionNumber}.0`;
 
     const ext = path.extname(req.file.originalname).toLowerCase().replace('.', '');
@@ -119,7 +121,7 @@ router.post('/part/:partId', upload.single('file'), async (req, res) => {
 
 // Get raw file content (for renderer) — uses extracted gcode for .3mf files
 router.get('/:id/content', async (req, res) => {
-  const gcode = await GCodeVersion.findById(req.params.id);
+  const gcode = await GCodeVersion.findById(req.params.id).select('gcodePreviewPath filePath').lean();
   if (!gcode) return res.status(404).json({ message: 'Not found' });
   const servePath = gcode.gcodePreviewPath || gcode.filePath;
   res.sendFile(path.resolve(servePath));
@@ -127,7 +129,7 @@ router.get('/:id/content', async (req, res) => {
 
 // Get extracted 3MF mesh XML for 3D solid rendering
 router.get('/:id/mesh', async (req, res) => {
-  const gcode = await GCodeVersion.findById(req.params.id);
+  const gcode = await GCodeVersion.findById(req.params.id).select('meshPath').lean();
   if (!gcode || !gcode.meshPath) return res.status(404).json({ message: 'No mesh available' });
   res.setHeader('Content-Type', 'application/xml');
   res.sendFile(path.resolve(gcode.meshPath));
@@ -135,16 +137,16 @@ router.get('/:id/mesh', async (req, res) => {
 
 // Download file
 router.get('/:id/download', async (req, res) => {
-  const gcode = await GCodeVersion.findById(req.params.id);
+  const gcode = await GCodeVersion.findById(req.params.id).select('filePath originalName').lean();
   if (!gcode) return res.status(404).json({ message: 'Not found' });
   res.download(path.resolve(gcode.filePath), gcode.originalName);
 });
 
 router.delete('/:id', async (req, res) => {
-  const gcode = await GCodeVersion.findById(req.params.id);
+  const gcode = await GCodeVersion.findById(req.params.id).select('filePath').lean();
   if (!gcode) return res.status(404).json({ message: 'Not found' });
   fs.unlink(gcode.filePath, () => {});
-  await gcode.deleteOne();
+  await GCodeVersion.deleteOne({ _id: req.params.id });
   res.json({ message: 'Deleted' });
 });
 

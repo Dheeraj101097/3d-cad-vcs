@@ -7,4 +7,6 @@ const componentGroupSchema = new mongoose.Schema({
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
 }, { timestamps: true });
 
+componentGroupSchema.index({ type: 1, name: 1 });
+
 module.exports = mongoose.model('ComponentGroup', componentGroupSchema);

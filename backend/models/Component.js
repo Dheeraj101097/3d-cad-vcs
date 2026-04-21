@@ -27,6 +27,9 @@ const componentSchema = new mongoose.Schema({
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
 }, { timestamps: true });
 
+componentSchema.index({ group: 1 });
+componentSchema.index({ alertTriggered: 1, alertAcknowledged: 1 });
+
 // Auto-generate code before save
 componentSchema.pre('save', async function (next) {
   if (!this.code) {

@@ -9,7 +9,7 @@ router.use(protect);
 // ── Types ────────────────────────────────────────────────────────────────────
 
 router.get('/types', async (req, res) => {
-  const types = await ComponentType.find().sort({ name: 1 });
+  const types = await ComponentType.find().select('-__v').sort({ name: 1 }).lean();
   res.json(types);
 });
 
@@ -50,7 +50,7 @@ router.post('/types/seed', async (req, res) => {
 // ── Groups ───────────────────────────────────────────────────────────────────
 
 router.get('/groups', async (req, res) => {
-  const groups = await ComponentGroup.find().sort({ type: 1, name: 1 });
+  const groups = await ComponentGroup.find().select('-__v').sort({ type: 1, name: 1 }).lean();
   res.json(groups);
 });
 
@@ -80,9 +80,11 @@ router.get('/components', async (req, res) => {
   if (group) filter.group = group;
   if (alert === 'true') filter.alertTriggered = true;
   const components = await Component.find(filter)
+    .select('-__v')
     .populate('group', 'name type')
     .populate('createdBy', 'name')
-    .sort({ createdAt: -1 });
+    .sort({ createdAt: -1 })
+    .lean();
   res.json(components);
 });
 
@@ -91,7 +93,8 @@ router.get('/alerts', async (req, res) => {
   const count = await Component.countDocuments({ alertTriggered: true, alertAcknowledged: false });
   const items = await Component.find({ alertTriggered: true, alertAcknowledged: false })
     .populate('group', 'name type')
-    .select('name code inStock minThreshold unit group');
+    .select('name code inStock minThreshold unit group')
+    .lean();
   res.json({ count, items });
 });
 

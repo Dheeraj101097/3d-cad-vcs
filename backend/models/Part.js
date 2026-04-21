@@ -7,4 +7,6 @@ const partSchema = new mongoose.Schema({
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
 }, { timestamps: true });
 
+partSchema.index({ product: 1 });
+
 module.exports = mongoose.model('Part', partSchema);

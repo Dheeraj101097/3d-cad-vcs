@@ -28,8 +28,10 @@ router.use(protect);
 // Get all STL versions for a part
 router.get('/part/:partId', async (req, res) => {
   const versions = await StlVersion.find({ part: req.params.partId })
+    .select('-__v')
     .populate('uploadedBy', 'name')
-    .sort({ versionNumber: -1 });
+    .sort({ versionNumber: -1 })
+    .lean();
   res.json(versions);
 });
 
@@ -40,8 +42,8 @@ router.post('/part/:partId', upload.single('file'), async (req, res) => {
     const partId = req.params.partId;
 
     await StlVersion.updateMany({ part: partId }, { isLatest: false });
-    const count = await StlVersion.countDocuments({ part: partId });
-    const versionNumber = count + 1;
+    const latest = await StlVersion.findOne({ part: partId }).sort({ versionNumber: -1 }).select('versionNumber').lean();
+    const versionNumber = (latest?.versionNumber ?? 0) + 1;
 
     const stl = await StlVersion.create({
       part: partId,
@@ -63,7 +65,7 @@ router.post('/part/:partId', upload.single('file'), async (req, res) => {
 
 // Serve STL file for viewer
 router.get('/:id/file', async (req, res) => {
-  const stl = await StlVersion.findById(req.params.id);
+  const stl = await StlVersion.findById(req.params.id).select('filePath').lean();
   if (!stl) return res.status(404).json({ message: 'Not found' });
   res.setHeader('Content-Type', 'application/octet-stream');
   res.sendFile(path.resolve(stl.filePath));
@@ -71,16 +73,16 @@ router.get('/:id/file', async (req, res) => {
 
 // Download
 router.get('/:id/download', async (req, res) => {
-  const stl = await StlVersion.findById(req.params.id);
+  const stl = await StlVersion.findById(req.params.id).select('filePath originalName').lean();
   if (!stl) return res.status(404).json({ message: 'Not found' });
   res.download(path.resolve(stl.filePath), stl.originalName);
 });
 
 router.delete('/:id', async (req, res) => {
-  const stl = await StlVersion.findById(req.params.id);
+  const stl = await StlVersion.findById(req.params.id).select('filePath').lean();
   if (!stl) return res.status(404).json({ message: 'Not found' });
   fs.unlink(stl.filePath, () => {});
-  await stl.deleteOne();
+  await StlVersion.deleteOne({ _id: req.params.id });
   res.json({ message: 'Deleted' });
 });
 

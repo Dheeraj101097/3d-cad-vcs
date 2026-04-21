@@ -5,7 +5,7 @@ const { protect } = require('../middleware/auth');
 router.use(protect);
 
 router.get('/', async (req, res) => {
-  const products = await Product.find().populate('createdBy', 'name email');
+  const products = await Product.find().select('-__v').populate('createdBy', 'name email').lean();
   res.json(products);
 });
 
@@ -24,13 +24,13 @@ router.post('/', async (req, res) => {
 });
 
 router.get('/:id', async (req, res) => {
-  const product = await Product.findById(req.params.id).populate('createdBy', 'name');
+  const product = await Product.findById(req.params.id).select('-__v').populate('createdBy', 'name').lean();
   if (!product) return res.status(404).json({ message: 'Not found' });
   res.json(product);
 });
 
 router.put('/:id', async (req, res) => {
-  const product = await Product.findByIdAndUpdate(req.params.id, req.body, { new: true });
+  const product = await Product.findByIdAndUpdate(req.params.id, req.body, { new: true, lean: true });
   res.json(product);
 });
 

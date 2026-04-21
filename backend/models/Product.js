@@ -7,4 +7,7 @@ const productSchema = new mongoose.Schema({
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
 }, { timestamps: true });
 
+productSchema.index({ sku: 1 }, { unique: true, sparse: true });
+productSchema.index({ createdBy: 1 });
+
 module.exports = mongoose.model('Product', productSchema);

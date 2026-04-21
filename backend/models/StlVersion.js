@@ -13,4 +13,7 @@ const stlVersionSchema = new mongoose.Schema({
   uploadedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
 }, { timestamps: true });
 
+stlVersionSchema.index({ part: 1, versionNumber: -1 });
+stlVersionSchema.index({ part: 1, isLatest: -1 });
+
 module.exports = mongoose.model('StlVersion', stlVersionSchema);

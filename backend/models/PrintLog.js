@@ -18,4 +18,7 @@ const printLogSchema = new mongoose.Schema({
   startedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
 }, { timestamps: true });
 
+printLogSchema.index({ printer: 1, createdAt: -1 });
+printLogSchema.index({ status: 1 });
+
 module.exports = mongoose.model('PrintLog', printLogSchema);

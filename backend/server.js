@@ -40,6 +40,20 @@ app.use('/api/inventory', require('./routes/inventory'));
 
 app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
 
+// Keep Render free-tier dyno warm (pings every 10 min to prevent 30s cold starts)
+const renderUrl = process.env.RENDER_EXTERNAL_URL;
+if (renderUrl) {
+  const https = require('https');
+  const http_mod = require('http');
+  setInterval(() => {
+    const pingUrl = `${renderUrl}/api/health`;
+    const mod = pingUrl.startsWith('https') ? https : http_mod;
+    mod.get(pingUrl, (r) => console.log(`[keep-alive] ping ${r.statusCode}`))
+       .on('error', (e) => console.log(`[keep-alive] error: ${e.message}`));
+  }, 10 * 60 * 1000);
+  console.log(`[keep-alive] enabled → ${renderUrl}/api/health`);
+}
+
 mongoose.connect(process.env.MONGO_URI)
   .then(() => {
     console.log('MongoDB connected');

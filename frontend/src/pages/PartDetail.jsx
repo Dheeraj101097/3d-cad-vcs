@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import axios from 'axios';
-import GCodeRenderer from '../components/GCodeRenderer';
-import StlViewer from '../components/StlViewer';
-import GCodeInfo from '../components/GCodeInfo';
+
+const GCodeRenderer = lazy(() => import('../components/GCodeRenderer'));
+const StlViewer = lazy(() => import('../components/StlViewer'));
+const GCodeInfo = lazy(() => import('../components/GCodeInfo'));
 
 export default function PartDetail() {
   const { partId } = useParams();
@@ -32,13 +33,22 @@ export default function PartDetail() {
   const [selectedStl, setSelectedStl] = useState(null);
 
   useEffect(() => {
-    axios.get(`/api/parts/${partId}`).then(r => {
-      setPart(r.data);
-      setGcodePartName(r.data.name);
-      setStlPartName(r.data.name);
+    Promise.all([
+      axios.get(`/api/parts/${partId}`),
+      axios.get(`/api/gcodes/part/${partId}`),
+      axios.get(`/api/stl/part/${partId}`)
+    ]).then(([partRes, versionsRes, stlRes]) => {
+      const p = partRes.data;
+      setPart(p);
+      setGcodePartName(p.name);
+      setStlPartName(p.name);
+
+      setVersions(versionsRes.data);
+      if (versionsRes.data.length > 0) selectVersion(versionsRes.data[0]);
+
+      setStlVersions(stlRes.data);
+      if (stlRes.data.length > 0) setSelectedStl(stlRes.data[0]);
     });
-    loadVersions();
-    loadStlVersions();
   }, [partId]);
 
   const loadVersions = () =>
@@ -202,9 +212,13 @@ export default function PartDetail() {
                 </div>
                 {loadingContent
                   ? <div style={{ height: 520, background: '#111318', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>Loading preview...</div>
-                  : <GCodeRenderer content={gcodeContent} />
+                  : <Suspense fallback={<div style={{ height: 520, background: '#111318', borderRadius: 8 }} />}>
+                      <GCodeRenderer content={gcodeContent} />
+                    </Suspense>
                 }
-                <GCodeInfo content={gcodeContent} />
+                <Suspense fallback={null}>
+                  <GCodeInfo content={gcodeContent} />
+                </Suspense>
                 {selected.notes && <NoteBox note={selected.notes} />}
               </div>
             ) : <EmptyViewer label="Select a version to preview" />}
@@ -230,7 +244,9 @@ export default function PartDetail() {
                   </div>
                   <button className="btn-ghost btn-sm" onClick={() => download(selectedStl, 'stl')}>↓ Download</button>
                 </div>
-                <StlViewer versionId={selectedStl._id} />
+                <Suspense fallback={<div style={{ height: 400, background: '#111318', borderRadius: 8 }} />}>
+                  <StlViewer versionId={selectedStl._id} />
+                </Suspense>
                 {selectedStl.notes && <NoteBox note={selectedStl.notes} />}
               </div>
             ) : <EmptyViewer label="Select an STL version to preview" />}

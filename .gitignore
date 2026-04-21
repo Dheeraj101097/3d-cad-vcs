@@ -6,6 +6,7 @@ bridge/node_modules/
 
 # ── Environment files ─────────────────────────────────────────────────────────
 backend/.env
+backend/.env.*
 agent/.env
 bridge/.env
 

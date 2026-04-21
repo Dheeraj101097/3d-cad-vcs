@@ -6,7 +6,7 @@ router.use(protect);
 
 // Get all parts for a product
 router.get('/product/:productId', async (req, res) => {
-  const parts = await Part.find({ product: req.params.productId }).populate('createdBy', 'name');
+  const parts = await Part.find({ product: req.params.productId }).select('-__v').populate('createdBy', 'name').lean();
   res.json(parts);
 });
 
@@ -20,13 +20,13 @@ router.post('/', async (req, res) => {
 });
 
 router.get('/:id', async (req, res) => {
-  const part = await Part.findById(req.params.id).populate('product').populate('createdBy', 'name');
+  const part = await Part.findById(req.params.id).select('-__v').populate('product', 'name _id sku').populate('createdBy', 'name').lean();
   if (!part) return res.status(404).json({ message: 'Not found' });
   res.json(part);
 });
 
 router.put('/:id', async (req, res) => {
-  const part = await Part.findByIdAndUpdate(req.params.id, req.body, { new: true });
+  const part = await Part.findByIdAndUpdate(req.params.id, req.body, { new: true, lean: true });
   res.json(part);
 });
 

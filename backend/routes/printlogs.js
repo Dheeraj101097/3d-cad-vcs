@@ -15,11 +15,13 @@ router.get('/', async (req, res) => {
   if (printer) filter.printer = printer;
   if (status) filter.status = status;
   const logs = await PrintLog.find(filter)
+    .select('-__v')
     .populate('printer', 'name model ip')
     .populate('version', 'version originalName')
     .populate('startedBy', 'name')
     .sort({ createdAt: -1 })
-    .limit(parseInt(limit));
+    .limit(parseInt(limit))
+    .lean();
   res.json(logs);
 });
 
@@ -75,18 +77,18 @@ router.patch('/:id', async (req, res) => {
   if (printError !== undefined) update.printError = printError;
 
   // Calculate duration
-  const log = await PrintLog.findById(req.params.id);
+  const log = await PrintLog.findById(req.params.id).select('startedAt').lean();
   if (log?.startedAt && update.finishedAt) {
     update.durationMinutes = Math.round((update.finishedAt - log.startedAt) / 60000);
   }
 
-  const updated = await PrintLog.findByIdAndUpdate(req.params.id, update, { new: true });
+  const updated = await PrintLog.findByIdAndUpdate(req.params.id, update, { new: true, lean: true });
   res.json(updated);
 });
 
 // Subscribe to printer MQTT and monitor print status
 router.post('/monitor/:printerId', async (req, res) => {
-  const printer = await Printer.findById(req.params.printerId);
+  const printer = await Printer.findById(req.params.printerId).lean();
   if (!printer) return res.status(404).json({ message: 'Printer not found' });
 
   // Start background MQTT monitor (non-blocking)
@@ -161,7 +163,7 @@ function startMqttMonitor(printer) {
 // Auto-start monitors for all printers on server boot
 async function initMonitors() {
   try {
-    const printers = await Printer.find();
+    const printers = await Printer.find().lean();
     for (const p of printers) startMqttMonitor(p);
     console.log(`[Monitor] Started ${printers.length} printer monitor(s)`);
   } catch {}

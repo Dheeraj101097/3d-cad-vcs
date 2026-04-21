@@ -10,8 +10,13 @@ export default function ProductDetail() {
   const [form, setForm] = useState({ name: '', description: '' });
 
   useEffect(() => {
-    axios.get(`/api/products/${productId}`).then(r => setProduct(r.data));
-    loadParts();
+    Promise.all([
+      axios.get(`/api/products/${productId}`),
+      axios.get(`/api/parts/product/${productId}`)
+    ]).then(([prodRes, partsRes]) => {
+      setProduct(prodRes.data);
+      setParts(partsRes.data);
+    });
   }, [productId]);
 
   const loadParts = () =>

@@ -16,4 +16,7 @@ const gcodeVersionSchema = new mongoose.Schema({
   uploadedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
 }, { timestamps: true });
 
+gcodeVersionSchema.index({ part: 1, versionNumber: -1 });
+gcodeVersionSchema.index({ part: 1, isLatest: -1 });
+
 module.exports = mongoose.model('GCodeVersion', gcodeVersionSchema);
