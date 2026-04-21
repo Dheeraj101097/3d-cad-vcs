@@ -21,6 +21,7 @@ exports.protect = async (req, res, next) => {
       req.user = cached;
     } else {
       const user = await User.findById(decoded.id).select('-password -__v').lean();
+      if (!user) return res.status(401).json({ message: 'User not found. Please log in again.' });
       userCache.set(decoded.id, { user, expiresAt: Date.now() + CACHE_TTL_MS });
       req.user = user;
     }

@@ -333,12 +333,6 @@ input::placeholder, textarea::placeholder { color: var(--text-light); }
   display: flex; align-items: center; justify-content: center;
   z-index: 100;
 }
-.modal-overlay::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  backdrop-filter: blur(4px);
-}
 .modal {
   background: var(--surface);
   border: 1px solid var(--border);
