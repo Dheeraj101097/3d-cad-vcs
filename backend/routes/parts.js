@@ -1,8 +1,8 @@
 const router = require('express').Router();
 const Part = require('../models/Part');
-const { protect } = require('../middleware/auth');
+const { protect, requireActive, requireWrite, requireAdmin } = require('../middleware/auth');
 
-router.use(protect);
+router.use(protect, requireActive);
 
 // Get all parts for a product
 router.get('/product/:productId', async (req, res) => {
@@ -10,7 +10,7 @@ router.get('/product/:productId', async (req, res) => {
   res.json(parts);
 });
 
-router.post('/', async (req, res) => {
+router.post('/', requireWrite, async (req, res) => {
   try {
     const part = await Part.create({ ...req.body, createdBy: req.user._id });
     res.status(201).json(part);
@@ -25,12 +25,12 @@ router.get('/:id', async (req, res) => {
   res.json(part);
 });
 
-router.put('/:id', async (req, res) => {
+router.put('/:id', requireWrite, async (req, res) => {
   const part = await Part.findByIdAndUpdate(req.params.id, req.body, { new: true, lean: true });
   res.json(part);
 });
 
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', requireAdmin, async (req, res) => {
   await Part.findByIdAndDelete(req.params.id);
   res.json({ message: 'Deleted' });
 });

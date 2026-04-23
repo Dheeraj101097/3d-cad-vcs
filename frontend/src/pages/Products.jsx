@@ -1,41 +1,66 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import axios from 'axios';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { getProducts, createProduct, deleteProduct } from '../api';
+import PageLoading from '../components/PageLoading';
+import { usePermission } from '../context/AuthContext';
 
 export default function Products() {
-  const [products, setProducts] = useState([]);
+  const qc = useQueryClient();
+  const { canWrite, canDelete } = usePermission();
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState({ name: '', description: '', sku: '' });
 
-  const load = () => axios.get('/api/products').then(r => setProducts(r.data));
-  useEffect(() => { load(); }, []);
+  const { data: products = [], isLoading } = useQuery({
+    queryKey: ['products'],
+    queryFn: getProducts,
+  });
 
-  const create = async (e) => {
+  const createMutation = useMutation({
+    mutationFn: createProduct,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['products'] });
+      setForm({ name: '', description: '', sku: '' });
+      setShowModal(false);
+    },
+    onError: (err) => alert(err.response?.data?.message || 'Create failed'),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: deleteProduct,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['products'] }),
+    onError: () => alert('Delete failed'),
+  });
+
+  const create = (e) => {
     e.preventDefault();
-    await axios.post('/api/products', form);
-    setForm({ name: '', description: '', sku: '' });
-    setShowModal(false);
-    load();
+    createMutation.mutate(form);
   };
 
-  const remove = async (id) => {
+  const remove = (id) => {
     if (!confirm('Delete this product and all its parts?')) return;
-    await axios.delete(`/api/products/${id}`);
-    load();
+    deleteMutation.mutate(id);
   };
+
+  if (isLoading) return <PageLoading />;
 
   return (
     <>
-      <div className="page-header">
+      <div className="page-header page-fade">
         <div>
           <h1>Products</h1>
           <p className="page-subtitle">{products.length} product{products.length !== 1 ? 's' : ''} in your workspace</p>
         </div>
-        <button className="btn-primary" onClick={() => setShowModal(true)}>+ New Product</button>
+        {canWrite && <button className="btn-primary" onClick={() => setShowModal(true)}>+ New Product</button>}
       </div>
 
-      <div className="grid">
-        {products.map((p, i) => (
+      <div className="grid page-fade">
+        {products.length === 0 ? (
+          <div className="empty-state" style={{ gridColumn: '1/-1' }}>
+            <div className="empty-state-icon">📦</div>
+            <p>No products yet. Create your first one to get started.</p>
+          </div>
+        ) : products.map((p, i) => (
           <div key={p._id} className="item-card">
             <div className="item-card-number">{String(i + 1).padStart(2, '0')}</div>
             <div>
@@ -50,16 +75,10 @@ export default function Products() {
               <Link to={`/products/${p._id}`}>
                 <button className="btn-primary btn-sm">View Parts →</button>
               </Link>
-              <button className="btn-danger btn-sm" onClick={() => remove(p._id)}>Delete</button>
+              {canDelete && <button className="btn-danger btn-sm" onClick={() => remove(p._id)}>Delete</button>}
             </div>
           </div>
         ))}
-        {products.length === 0 && (
-          <div className="empty-state" style={{ gridColumn: '1/-1' }}>
-            <div className="empty-state-icon">📦</div>
-            <p>No products yet. Create your first one to get started.</p>
-          </div>
-        )}
       </div>
 
       {showModal && (
@@ -81,7 +100,9 @@ export default function Products() {
               </div>
               <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 4 }}>
                 <button type="button" className="btn-ghost" onClick={() => setShowModal(false)}>Cancel</button>
-                <button type="submit" className="btn-primary">Create Product</button>
+                <button type="submit" className="btn-primary" disabled={createMutation.isPending}>
+                  {createMutation.isPending ? 'Creating...' : 'Create Product'}
+                </button>
               </div>
             </form>
           </div>

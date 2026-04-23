@@ -1,5 +1,7 @@
-import { useState, useEffect } from 'react';
-import axios from 'axios';
+import { useSearchParams } from 'react-router-dom';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { getPrintLogs, getPrintStats } from '../api';
+import PageLoading from '../components/PageLoading';
 
 const STATUS_STYLE = {
   finished: { bg: '#d4ede3', color: '#2d5040', label: '✓ Finished' },
@@ -8,6 +10,9 @@ const STATUS_STYLE = {
   started:  { bg: '#f5e9d8', color: '#8a6535', label: '↑ Started' },
   cancelled:{ bg: '#f0f0f0', color: '#666',    label: '— Cancelled' }
 };
+
+const fmtDate = (d) => new Date(d).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+const fmtDur  = (min) => min >= 60 ? `${Math.floor(min / 60)}h ${min % 60}m` : `${min}m`;
 
 function StatCard({ label, value, sub }) {
   return (
@@ -20,38 +25,41 @@ function StatCard({ label, value, sub }) {
 }
 
 export default function PrintLogs() {
-  const [logs, setLogs] = useState([]);
-  const [stats, setStats] = useState(null);
-  const [filter, setFilter] = useState('');
+  const qc = useQueryClient();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const filter = searchParams.get('status') || '';
 
-  const load = async () => {
-    const params = filter ? `?status=${filter}` : '';
-    const [logsRes, statsRes] = await Promise.all([
-      axios.get(`/api/printlogs${params}`),
-      axios.get('/api/printlogs/stats')
-    ]);
-    setLogs(logsRes.data);
-    setStats(statsRes.data);
+  const setFilter = (s) => setSearchParams(s ? { status: s } : {}, { replace: true });
+
+  const { data: logs = [], isLoading: logsLoading } = useQuery({
+    queryKey: ['print-logs', filter],
+    queryFn: () => getPrintLogs(filter),
+  });
+
+  const { data: stats } = useQuery({
+    queryKey: ['print-stats'],
+    queryFn: getPrintStats,
+  });
+
+  const refresh = () => {
+    qc.invalidateQueries({ queryKey: ['print-logs'] });
+    qc.invalidateQueries({ queryKey: ['print-stats'] });
   };
 
-  useEffect(() => { load(); }, [filter]);
-
-  const fmtDate = (d) => new Date(d).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
-  const fmtDur = (min) => min >= 60 ? `${Math.floor(min/60)}h ${min%60}m` : `${min}m`;
+  if (logsLoading) return <PageLoading />;
 
   return (
     <>
-      <div className="page-header">
+      <div className="page-header page-fade">
         <div>
           <h1>Print Logs</h1>
           <p className="page-subtitle">Material usage and print history across all printers</p>
         </div>
-        <button className="btn-ghost" onClick={load}>↻ Refresh</button>
+        <button className="btn-ghost" onClick={refresh}>↻ Refresh</button>
       </div>
 
-      {/* Stats */}
       {stats && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 14, marginBottom: 28 }}>
+        <div className="page-fade" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 14, marginBottom: 28 }}>
           <StatCard label="Total Prints" value={stats.total} />
           <StatCard label="Success Rate" value={`${stats.successRate}%`} sub={`${stats.finished} finished`} />
           <StatCard label="Failed" value={stats.failed} sub="prints" />
@@ -59,7 +67,6 @@ export default function PrintLogs() {
         </div>
       )}
 
-      {/* Filter */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
         {['', 'running', 'finished', 'failed', 'cancelled'].map(s => (
           <button
@@ -72,8 +79,7 @@ export default function PrintLogs() {
         ))}
       </div>
 
-      {/* Log table */}
-      <div className="version-list">
+      <div className="version-list page-fade">
         <div className="version-list-header" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 100px 90px 90px 80px', gap: 12 }}>
           <span>File</span>
           <span>Printer</span>
@@ -95,11 +101,9 @@ export default function PrintLogs() {
             <div key={log._id} style={{
               display: 'grid',
               gridTemplateColumns: '1fr 1fr 100px 90px 90px 80px',
-              gap: 12,
-              padding: '12px 18px',
+              gap: 12, padding: '12px 18px',
               borderBottom: '1px solid var(--border)',
-              alignItems: 'center',
-              fontSize: 13
+              alignItems: 'center', fontSize: 13
             }}>
               <div>
                 <div style={{ fontWeight: 600, color: 'var(--text)' }}>{log.fileName || log.version?.originalName || '—'}</div>
@@ -114,8 +118,7 @@ export default function PrintLogs() {
               <div>
                 <span style={{
                   display: 'inline-block', padding: '3px 8px', borderRadius: 999,
-                  fontSize: 11, fontWeight: 700,
-                  background: s.bg, color: s.color
+                  fontSize: 11, fontWeight: 700, background: s.bg, color: s.color
                 }}>{s.label}</span>
               </div>
               <div style={{ color: 'var(--text-muted)' }}>

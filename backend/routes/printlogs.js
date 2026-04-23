@@ -3,10 +3,10 @@ const PrintLog = require('../models/PrintLog');
 const GCodeVersion = require('../models/GCodeVersion');
 const Printer = require('../models/Printer');
 const { calcFilamentUsage } = require('../utils/filamentCalc');
-const { protect } = require('../middleware/auth');
+const { protect, requireActive, requireWrite, requireAdmin } = require('../middleware/auth');
 const mqtt = require('mqtt');
 
-router.use(protect);
+router.use(protect, requireActive);
 
 // Get all logs (with filters)
 router.get('/', async (req, res) => {
@@ -42,7 +42,7 @@ router.get('/stats', async (req, res) => {
 });
 
 // Create log when print starts (called internally from printers route)
-router.post('/', async (req, res) => {
+router.post('/', requireWrite, async (req, res) => {
   try {
     const { printerId, versionId, fileName, startedBy } = req.body;
     const version = versionId ? await GCodeVersion.findById(versionId) : null;
@@ -67,7 +67,7 @@ router.post('/', async (req, res) => {
 });
 
 // Update log status (called by agent or MQTT monitor)
-router.patch('/:id', async (req, res) => {
+router.patch('/:id', requireWrite, async (req, res) => {
   const { status, totalLayers, printError } = req.body;
   const update = { status };
   if (status === 'finished' || status === 'failed' || status === 'cancelled') {
@@ -87,7 +87,7 @@ router.patch('/:id', async (req, res) => {
 });
 
 // Subscribe to printer MQTT and monitor print status
-router.post('/monitor/:printerId', async (req, res) => {
+router.post('/monitor/:printerId', requireWrite, async (req, res) => {
   const printer = await Printer.findById(req.params.printerId).lean();
   if (!printer) return res.status(404).json({ message: 'Printer not found' });
 

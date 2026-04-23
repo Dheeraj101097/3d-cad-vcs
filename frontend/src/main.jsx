@@ -1,8 +1,24 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import App from './App';
 import './index.css';
 
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 0,           // always stale → refetch in background on mount
+      gcTime: 5 * 60_000,    // keep cached data for 5 min (instant navigation back)
+      refetchOnWindowFocus: true,
+      retry: 1,
+    },
+  },
+});
+
 ReactDOM.createRoot(document.getElementById('root')).render(
-  <React.StrictMode><App /></React.StrictMode>
+  <React.StrictMode>
+    <QueryClientProvider client={queryClient}>
+      <App />
+    </QueryClientProvider>
+  </React.StrictMode>
 );

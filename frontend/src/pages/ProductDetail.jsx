@@ -1,52 +1,64 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import axios from 'axios';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { getProduct, getParts, createPart, deletePart } from '../api';
+import PageLoading from '../components/PageLoading';
+import { usePermission } from '../context/AuthContext';
 
 export default function ProductDetail() {
   const { productId } = useParams();
-  const [product, setProduct] = useState(null);
-  const [parts, setParts] = useState([]);
+  const qc = useQueryClient();
+  const { canWrite, canDelete } = usePermission();
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState({ name: '', description: '' });
 
-  useEffect(() => {
-    Promise.all([
-      axios.get(`/api/products/${productId}`),
-      axios.get(`/api/parts/product/${productId}`)
-    ]).then(([prodRes, partsRes]) => {
-      setProduct(prodRes.data);
-      setParts(partsRes.data);
-    });
-  }, [productId]);
+  const { data: product, isLoading: productLoading } = useQuery({
+    queryKey: ['product', productId],
+    queryFn: () => getProduct(productId),
+  });
 
-  const loadParts = () =>
-    axios.get(`/api/parts/product/${productId}`).then(r => setParts(r.data));
+  const { data: parts = [], isLoading: partsLoading } = useQuery({
+    queryKey: ['parts', productId],
+    queryFn: () => getParts(productId),
+  });
 
-  const create = async (e) => {
+  const createMutation = useMutation({
+    mutationFn: createPart,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['parts', productId] });
+      setForm({ name: '', description: '' });
+      setShowModal(false);
+    },
+    onError: (err) => alert(err.response?.data?.message || 'Create failed'),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: deletePart,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['parts', productId] }),
+    onError: () => alert('Delete failed'),
+  });
+
+  const create = (e) => {
     e.preventDefault();
-    await axios.post('/api/parts', { ...form, product: productId });
-    setForm({ name: '', description: '' });
-    setShowModal(false);
-    loadParts();
+    createMutation.mutate({ ...form, product: productId });
   };
 
-  const remove = async (id) => {
+  const remove = (id) => {
     if (!confirm('Delete this part?')) return;
-    await axios.delete(`/api/parts/${id}`);
-    loadParts();
+    deleteMutation.mutate(id);
   };
 
-  if (!product) return <p style={{ color: 'var(--text-muted-dark)' }}>Loading...</p>;
+  if (productLoading || partsLoading) return <PageLoading />;
 
   return (
     <>
-      <div className="breadcrumb">
+      <div className="breadcrumb page-fade">
         <Link to="/products">Products</Link>
         <span className="breadcrumb-sep">›</span>
         <span style={{ color: 'var(--text-on-dark)' }}>{product.name}</span>
       </div>
 
-      <div className="page-header">
+      <div className="page-header page-fade">
         <div>
           <h1>{product.name}</h1>
           <p className="page-subtitle">
@@ -54,15 +66,20 @@ export default function ProductDetail() {
             {parts.length} part{parts.length !== 1 ? 's' : ''}
           </p>
         </div>
-        <button className="btn-primary" onClick={() => setShowModal(true)}>+ Add Part</button>
+        {canWrite && <button className="btn-primary" onClick={() => setShowModal(true)}>+ Add Part</button>}
       </div>
 
       {product.description && (
         <p style={{ color: 'var(--text-muted-dark)', marginBottom: 24, fontSize: 14 }}>{product.description}</p>
       )}
 
-      <div className="grid">
-        {parts.map((p, i) => (
+      <div className="grid page-fade">
+        {parts.length === 0 ? (
+          <div className="empty-state" style={{ gridColumn: '1/-1' }}>
+            <div className="empty-state-icon">🔩</div>
+            <p>No parts yet. Add the first part for this product.</p>
+          </div>
+        ) : parts.map((p, i) => (
           <div key={p._id} className="item-card">
             <div className="item-card-number">{String(i + 1).padStart(2, '0')}</div>
             <div>
@@ -76,16 +93,10 @@ export default function ProductDetail() {
               <Link to={`/parts/${p._id}`}>
                 <button className="btn-primary btn-sm">G-Code Versions →</button>
               </Link>
-              <button className="btn-danger btn-sm" onClick={() => remove(p._id)}>Delete</button>
+              {canDelete && <button className="btn-danger btn-sm" onClick={() => remove(p._id)}>Delete</button>}
             </div>
           </div>
         ))}
-        {parts.length === 0 && (
-          <div className="empty-state" style={{ gridColumn: '1/-1' }}>
-            <div className="empty-state-icon">🔩</div>
-            <p>No parts yet. Add the first part for this product.</p>
-          </div>
-        )}
       </div>
 
       {showModal && (
@@ -103,7 +114,9 @@ export default function ProductDetail() {
               </div>
               <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 4 }}>
                 <button type="button" className="btn-ghost" onClick={() => setShowModal(false)}>Cancel</button>
-                <button type="submit" className="btn-primary">Create Part</button>
+                <button type="submit" className="btn-primary" disabled={createMutation.isPending}>
+                  {createMutation.isPending ? 'Creating...' : 'Create Part'}
+                </button>
               </div>
             </form>
           </div>

@@ -1,15 +1,15 @@
 const router = require('express').Router();
 const Product = require('../models/Product');
-const { protect } = require('../middleware/auth');
+const { protect, requireActive, requireWrite, requireAdmin } = require('../middleware/auth');
 
-router.use(protect);
+router.use(protect, requireActive);
 
 router.get('/', async (req, res) => {
   const products = await Product.find().select('-__v').populate('createdBy', 'name email').lean();
   res.json(products);
 });
 
-router.post('/', async (req, res) => {
+router.post('/', requireWrite, async (req, res) => {
   try {
     const { name, description, sku } = req.body;
     const product = await Product.create({
@@ -29,12 +29,12 @@ router.get('/:id', async (req, res) => {
   res.json(product);
 });
 
-router.put('/:id', async (req, res) => {
+router.put('/:id', requireWrite, async (req, res) => {
   const product = await Product.findByIdAndUpdate(req.params.id, req.body, { new: true, lean: true });
   res.json(product);
 });
 
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', requireAdmin, async (req, res) => {
   await Product.findByIdAndDelete(req.params.id);
   res.json({ message: 'Deleted' });
 });

@@ -1,31 +1,33 @@
-import { Outlet, NavLink } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { useEffect, Suspense } from 'react';
+import { Outlet, NavLink, useLocation } from 'react-router-dom';
+import { useAuth, usePermission } from '../context/AuthContext';
 
 export default function Layout() {
   const { user, logout } = useAuth();
+  const { isAdmin } = usePermission();
+  const { pathname } = useLocation();
   const initials = user?.name?.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) || 'U';
+
+  // Scroll to top on every route change
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
 
   return (
     <div className="layout">
       <aside className="sidebar">
         <div className="logo">
-          <div className="logo-icon">⚙</div>
-          CAD Portal
+          URBANNOOK VCS
         </div>
 
         <div className="sidebar-section">Navigation</div>
-        <NavLink to="/products" className={({ isActive }) => isActive ? 'active' : ''}>
-          📦 Products
-        </NavLink>
-        <NavLink to="/printers" className={({ isActive }) => isActive ? 'active' : ''}>
-          🖨 Printers
-        </NavLink>
-        <NavLink to="/printlogs" className={({ isActive }) => isActive ? 'active' : ''}>
-          📋 Print Logs
-        </NavLink>
-        <NavLink to="/inventory" className={({ isActive }) => isActive ? 'active' : ''}>
-          📦 Inventory
-        </NavLink>
+        <NavLink to="/products"  className={({ isActive }) => isActive ? 'active' : ''}>Products</NavLink>
+        <NavLink to="/printers"  className={({ isActive }) => isActive ? 'active' : ''}>Printers</NavLink>
+        <NavLink to="/printlogs" className={({ isActive }) => isActive ? 'active' : ''}>Print Logs</NavLink>
+        <NavLink to="/inventory" className={({ isActive }) => isActive ? 'active' : ''}>Inventory</NavLink>
+        {isAdmin && (
+          <NavLink to="/admin" className={({ isActive }) => isActive ? 'active' : ''}>🛡 Admin</NavLink>
+        )}
 
         <div className="sidebar-footer">
           <div className="sidebar-user">
@@ -47,7 +49,9 @@ export default function Layout() {
         </div>
       </aside>
       <main className="main">
-        <Outlet />
+        <Suspense fallback={<div style={{ padding: '48px 32px', color: 'var(--text-muted)', fontSize: 14 }}>Loading...</div>}>
+          <Outlet />
+        </Suspense>
       </main>
     </div>
   );
