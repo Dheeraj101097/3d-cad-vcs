@@ -1,11 +1,16 @@
 import { useEffect, Suspense } from "react";
 import { Outlet, NavLink, useLocation } from "react-router-dom";
 import { useAuth, usePermission } from "../context/AuthContext";
+import { RESOURCES } from "../config/resources";
 
 export default function Layout() {
   const { user, logout } = useAuth();
   const { isAdmin } = usePermission();
   const { pathname } = useLocation();
+
+  const visibleResources = user?.role === 'admin'
+    ? RESOURCES
+    : RESOURCES.filter(r => !!((user?.permissions?.[r.key] ?? 0) & 4));
   const initials =
     user?.name
       ?.split(" ")
@@ -41,38 +46,17 @@ export default function Layout() {
 
         {/* Nav links */}
         <nav className="flex flex-col gap-0.5 px-3 flex-1">
-          <NavLink
-            to="/products"
-            className={({ isActive }) =>
-              `flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-normal transition-all duration-150 ${isActive ? "bg-white/[0.08] text-gray-100" : "text-gray-400 hover:bg-white/[0.05] hover:text-gray-200"}`
-            }
-          >
-            Products
-          </NavLink>
-          <NavLink
-            to="/printers"
-            className={({ isActive }) =>
-              `flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-normal transition-all duration-150 ${isActive ? "bg-white/[0.08] text-gray-100" : "text-gray-400 hover:bg-white/[0.05] hover:text-gray-200"}`
-            }
-          >
-            Printers
-          </NavLink>
-          <NavLink
-            to="/printlogs"
-            className={({ isActive }) =>
-              `flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-normal transition-all duration-150 ${isActive ? "bg-white/[0.08] text-gray-100" : "text-gray-400 hover:bg-white/[0.05] hover:text-gray-200"}`
-            }
-          >
-            Print Logs
-          </NavLink>
-          <NavLink
-            to="/inventory"
-            className={({ isActive }) =>
-              `flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-normal transition-all duration-150 ${isActive ? "bg-white/[0.08] text-gray-100" : "text-gray-400 hover:bg-white/[0.05] hover:text-gray-200"}`
-            }
-          >
-            Inventory
-          </NavLink>
+          {visibleResources.map(r => (
+            <NavLink
+              key={r.key}
+              to={r.path}
+              className={({ isActive }) =>
+                `flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-normal transition-all duration-150 ${isActive ? "bg-white/[0.08] text-gray-100" : "text-gray-400 hover:bg-white/[0.05] hover:text-gray-200"}`
+              }
+            >
+              {r.label}
+            </NavLink>
+          ))}
           {isAdmin && (
             <NavLink
               to="/admin"

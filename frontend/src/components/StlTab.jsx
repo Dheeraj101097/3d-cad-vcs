@@ -21,7 +21,7 @@ function NoteBox({ note }) {
 
 export default function StlTab({ partId, partName }) {
   const qc = useQueryClient();
-  const { canWrite, canDelete } = usePermission();
+  const { canWrite, canDelete } = usePermission('products');
   const [searchParams, setSearchParams] = useSearchParams();
   const urlVersionId = searchParams.get('sv');
 

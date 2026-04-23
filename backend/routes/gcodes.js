@@ -4,7 +4,8 @@ const path = require('path');
 const fs = require('fs');
 const AdmZip = require('adm-zip');
 const GCodeVersion = require('../models/GCodeVersion');
-const { protect, requireActive, requireWrite, requireAdmin } = require('../middleware/auth');
+const Part = require('../models/Part');
+const { protect, requireActive, requireWrite, requireDelete } = require('../middleware/auth');
 
 // Extract gcode and mesh from a Bambu Lab .3mf ZIP archive
 function extractFrom3mf(zipPath, destDir) {
@@ -72,7 +73,7 @@ router.get('/part/:partId', async (req, res) => {
 });
 
 // Upload new version
-router.post('/part/:partId', requireWrite, upload.single('file'), async (req, res) => {
+router.post('/part/:partId', requireWrite('products'), upload.single('file'), async (req, res) => {
   try {
     const { notes } = req.body;
     const partId = req.params.partId;
@@ -97,6 +98,30 @@ router.post('/part/:partId', requireWrite, upload.single('file'), async (req, re
       if (extracted.meshPath) meshPath = extracted.meshPath;
     }
 
+    // Thumbnail extraction from 3mf
+    let thumbnailUrl = null;
+    if (ext === '3mf') {
+      try {
+        const thumbZip = new AdmZip(req.file.path);
+        const thumbEntries = thumbZip.getEntries();
+        const thumbEntry =
+          thumbEntries.find(e => /thumbnails\/.*\.(png|jpe?g)$/i.test(e.entryName)) ||
+          thumbEntries.find(e => /metadata\/plate_\d+\.(png|jpe?g)$/i.test(e.entryName)) ||
+          thumbEntries.find(e => /\.(png|jpe?g)$/i.test(e.entryName));
+        if (thumbEntry) {
+          const thumbDir = path.join(__dirname, '../uploads/thumbnails');
+          fs.mkdirSync(thumbDir, { recursive: true });
+          const thumbFilename = `thumb_${partId}_${Date.now()}.png`;
+          const thumbPath = path.join(thumbDir, thumbFilename);
+          fs.writeFileSync(thumbPath, thumbEntry.getData());
+          thumbnailUrl = `/uploads/thumbnails/${thumbFilename}`;
+          await Part.findByIdAndUpdate(partId, { thumbnailUrl });
+        }
+      } catch (thumbErr) {
+        console.error('Thumbnail extraction failed:', thumbErr.message);
+      }
+    }
+
     const gcode = await GCodeVersion.create({
       part: partId,
       version,
@@ -107,6 +132,7 @@ router.post('/part/:partId', requireWrite, upload.single('file'), async (req, re
       filePath: req.file.path,
       gcodePreviewPath,
       meshPath,
+      thumbnailPath: thumbnailUrl,
       fileSize: req.file.size,
       notes,
       isLatest: true,
@@ -157,7 +183,7 @@ router.get('/:id/download', async (req, res) => {
   res.download(path.resolve(gcode.filePath), gcode.originalName);
 });
 
-router.delete('/:id', requireAdmin, async (req, res) => {
+router.delete('/:id', requireDelete('products'), async (req, res) => {
   const gcode = await GCodeVersion.findById(req.params.id).select('filePath').lean();
   if (!gcode) return res.status(404).json({ message: 'Not found' });
   fs.unlink(gcode.filePath, () => {});

@@ -7,9 +7,10 @@ const userSchema = new mongoose.Schema({
   password: { type: String, required: true },
   role: {
     type: String,
-    enum: ['pending', 'read', 'write', 'admin', 'revoked'],
+    enum: ['pending', 'active', 'admin', 'revoked'],
     default: 'pending'
-  }
+  },
+  permissions: { type: Object, default: {} }
 }, { timestamps: true });
 
 userSchema.pre('save', async function (next) {

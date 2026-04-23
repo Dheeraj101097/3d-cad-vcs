@@ -1,4 +1,4 @@
-import { createContext, useContext, useState } from 'react';
+import { createContext, useContext, useState, useEffect } from 'react';
 import axios from 'axios';
 
 const AuthContext = createContext();
@@ -14,6 +14,29 @@ export function AuthProvider({ children }) {
     const u = localStorage.getItem('cad_user');
     return u ? JSON.parse(u) : null;
   });
+  const [ready, setReady] = useState(false);
+
+  // On every app load, refresh from server so role + permissions are always current.
+  // This also handles users with stale localStorage (e.g. old role='read' before RBAC).
+  useEffect(() => {
+    const token = localStorage.getItem('cad_token');
+    if (!token) { setReady(true); return; }
+    axios.get('/api/auth/me')
+      .then(({ data }) => {
+        const stored = localStorage.getItem('cad_user');
+        const updated = { ...(stored ? JSON.parse(stored) : {}), ...data };
+        localStorage.setItem('cad_user', JSON.stringify(updated));
+        setUser(updated);
+      })
+      .catch(() => {
+        localStorage.removeItem('cad_token');
+        localStorage.removeItem('cad_user');
+        setUser(null);
+      })
+      .finally(() => setReady(true));
+  }, []);
+
+  if (!ready) return null;
 
   const _persist = (token, userData) => {
     localStorage.setItem('cad_token', token);
@@ -61,12 +84,16 @@ export function AuthProvider({ children }) {
 export const useAuth = () => useContext(AuthContext);
 
 // Convenience hook — import this in any component that needs permission checks
-export function usePermission() {
+export function usePermission(resource) {
   const { user } = useAuth();
-  const role = user?.role;
+  const isAdmin = user?.role === 'admin';
+  if (!resource) return { canWrite: isAdmin, canDelete: isAdmin, isAdmin };
+  if (isAdmin) return { canRead: true, canWrite: true, canDelete: true, isAdmin: true };
+  const bits = user?.permissions?.[resource] ?? 0;
   return {
-    canWrite:  role === 'write'  || role === 'admin',
-    canDelete: role === 'admin',
-    isAdmin:   role === 'admin',
+    canRead:   !!(bits & 4),
+    canWrite:  !!(bits & 2),
+    canDelete: !!(bits & 1),
+    isAdmin:   false,
   };
 }

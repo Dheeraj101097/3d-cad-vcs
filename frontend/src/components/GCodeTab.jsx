@@ -22,7 +22,7 @@ function NoteBox({ note }) {
 
 export default function GCodeTab({ partId, partName }) {
   const qc = useQueryClient();
-  const { canWrite, canDelete } = usePermission();
+  const { canWrite, canDelete } = usePermission('products');
   const [searchParams, setSearchParams] = useSearchParams();
   const urlVersionId = searchParams.get('gv');
 

@@ -63,6 +63,10 @@ export const createInventoryType = (data) => axios.post('/api/inventory/types', 
 export const deleteInventoryType = (id)   => axios.delete(`/api/inventory/types/${id}`).then(r => r.data);
 export const seedInventoryTypes  = ()     => axios.post('/api/inventory/types/seed').then(r => r.data);
 
+// ── Admin ─────────────────────────────────────────────────────────────
+export const updateUserPermissions = ({ id, resource, bits }) =>
+  axios.patch(`/api/admin/users/${id}/permissions`, { resource, bits }).then(r => r.data);
+
 // ── Download utility (uses fetch so browser triggers save dialog) ─────
 export const downloadVersion = async (v, type = 'gcode') => {
   const token = localStorage.getItem('cad_token');

@@ -8,7 +8,7 @@ import { usePermission } from '../context/AuthContext';
 export default function ProductDetail() {
   const { productId } = useParams();
   const qc = useQueryClient();
-  const { canWrite, canDelete } = usePermission();
+  const { canWrite, canDelete } = usePermission('products');
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState({ name: '', description: '' });
 
@@ -92,9 +92,15 @@ export default function ProductDetail() {
           <div className="col-span-full text-center py-12 text-gray-500">
             <p className="text-sm">No parts yet. Add the first part for this product.</p>
           </div>
-        ) : parts.map((p, i) => (
+        ) : parts.map((p) => (
           <div key={p._id} className="glass rounded-xl p-5 flex flex-col gap-3 hover:bg-white/[0.06] transition-all duration-200">
-            <span className="text-3xl font-extrabold text-white/[0.06] leading-none tabular-nums">{String(i + 1).padStart(2, '0')}</span>
+            {/* Thumbnail from latest 3mf */}
+            <div className="w-full aspect-video rounded-lg overflow-hidden bg-brand-900/60 flex items-center justify-center mb-1">
+              {p.thumbnailUrl
+                ? <img src={p.thumbnailUrl} alt={p.name} className="w-full h-full object-cover" />
+                : <div className="w-full h-full bg-brand-900/80" />
+              }
+            </div>
             <div>
               <div className="text-[11px] font-medium uppercase tracking-wider text-gray-500">Part</div>
               <div className="text-base font-semibold text-gray-200">{p.name}</div>

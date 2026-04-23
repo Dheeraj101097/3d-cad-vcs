@@ -221,7 +221,7 @@ function TypeSection({ type, groups, components, activeGroup, isTypeActive, type
 // ── Main page ──────────────────────────────────────────────────────────────────
 export default function Inventory() {
   const qc = useQueryClient();
-  const { canWrite, canDelete } = usePermission();
+  const { canWrite, canDelete } = usePermission('inventory');
 
   // URL-based navigation state — survives page refresh and browser back/forward
   const [searchParams, setSearchParams] = useSearchParams();

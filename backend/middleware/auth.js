@@ -33,7 +33,6 @@ exports.protect = async (req, res, next) => {
   }
 };
 
-// Blocks pending and revoked users from accessing any content
 exports.requireActive = (req, res, next) => {
   const { role } = req.user;
   if (role === 'pending') return res.status(403).json({ message: 'Your account is pending admin approval.', code: 'PENDING' });
@@ -41,17 +40,31 @@ exports.requireActive = (req, res, next) => {
   next();
 };
 
-// Only write + admin can create/edit
-exports.requireWrite = (req, res, next) => {
-  const { role } = req.user;
-  if (role !== 'write' && role !== 'admin')
-    return res.status(403).json({ message: 'You have read-only access.' });
-  next();
-};
-
-// Only admin can delete
+// Admin-only (for /api/admin routes)
 exports.requireAdmin = (req, res, next) => {
   if (req.user.role !== 'admin')
     return res.status(403).json({ message: 'Admin access required.' });
+  next();
+};
+
+// Resource-based permission factories — admin bypasses all
+exports.requireRead = (resource) => (req, res, next) => {
+  if (req.user.role === 'admin') return next();
+  const bits = req.user.permissions?.[resource] ?? 0;
+  if (!(bits & 4)) return res.status(403).json({ message: 'Read access required.' });
+  next();
+};
+
+exports.requireWrite = (resource) => (req, res, next) => {
+  if (req.user.role === 'admin') return next();
+  const bits = req.user.permissions?.[resource] ?? 0;
+  if (!(bits & 2)) return res.status(403).json({ message: 'Write access required.' });
+  next();
+};
+
+exports.requireDelete = (resource) => (req, res, next) => {
+  if (req.user.role === 'admin') return next();
+  const bits = req.user.permissions?.[resource] ?? 0;
+  if (!(bits & 1)) return res.status(403).json({ message: 'Delete access required.' });
   next();
 };

@@ -156,7 +156,7 @@ function PrinterCard({ printer, onDelete, onPrint, onEdit }) {
 
 export default function Printers() {
   const qc = useQueryClient();
-  const { canWrite, canDelete } = usePermission();
+  const { canWrite, canDelete } = usePermission('printers');
   const [showAdd, setShowAdd] = useState(false);
   const [showPrint, setShowPrint] = useState(false);
   const [editPrinter, setEditPrinter] = useState(null);

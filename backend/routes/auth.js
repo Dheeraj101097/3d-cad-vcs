@@ -7,7 +7,7 @@ const ADMIN_EMAILS = ['electramite@gmail.com', 'dheeraj@gmail.com'];
 const sign = (id) => jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '7d' });
 
 const userPayload = (u) => ({
-  id: u._id, name: u.name, email: u.email, role: u.role
+  id: u._id, name: u.name, email: u.email, role: u.role, permissions: u.permissions ?? {}
 });
 
 // Register

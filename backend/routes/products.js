@@ -1,6 +1,31 @@
 const router = require('express').Router();
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
 const Product = require('../models/Product');
-const { protect, requireActive, requireWrite, requireAdmin } = require('../middleware/auth');
+const { protect, requireActive, requireWrite, requireDelete } = require('../middleware/auth');
+
+const imageStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const dir = path.join(__dirname, '../uploads/product-images');
+    fs.mkdirSync(dir, { recursive: true });
+    cb(null, dir);
+  },
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase();
+    cb(null, `product_${Date.now()}${ext}`);
+  }
+});
+
+const imageUpload = multer({
+  storage: imageStorage,
+  fileFilter: (req, file, cb) => {
+    const allowed = ['.jpg', '.jpeg', '.png'];
+    const ext = path.extname(file.originalname).toLowerCase();
+    allowed.includes(ext) ? cb(null, true) : cb(new Error('Only jpg, jpeg, png allowed'));
+  },
+  limits: { fileSize: 5 * 1024 * 1024 }
+});
 
 router.use(protect, requireActive);
 
@@ -9,12 +34,14 @@ router.get('/', async (req, res) => {
   res.json(products);
 });
 
-router.post('/', requireWrite, async (req, res) => {
+router.post('/', requireWrite('products'), imageUpload.single('image'), async (req, res) => {
   try {
     const { name, description, sku } = req.body;
+    const imageUrl = req.file ? `/uploads/product-images/${req.file.filename}` : undefined;
     const product = await Product.create({
       name, description,
-      sku: sku || undefined,   // don't store empty string
+      sku: sku || undefined,
+      imageUrl,
       createdBy: req.user._id
     });
     res.status(201).json(product);
@@ -29,12 +56,12 @@ router.get('/:id', async (req, res) => {
   res.json(product);
 });
 
-router.put('/:id', requireWrite, async (req, res) => {
+router.put('/:id', requireWrite('products'), async (req, res) => {
   const product = await Product.findByIdAndUpdate(req.params.id, req.body, { new: true, lean: true });
   res.json(product);
 });
 
-router.delete('/:id', requireAdmin, async (req, res) => {
+router.delete('/:id', requireDelete('products'), async (req, res) => {
   await Product.findByIdAndDelete(req.params.id);
   res.json({ message: 'Deleted' });
 });

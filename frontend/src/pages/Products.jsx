@@ -7,9 +7,9 @@ import { usePermission } from '../context/AuthContext';
 
 export default function Products() {
   const qc = useQueryClient();
-  const { canWrite, canDelete } = usePermission();
+  const { canRead, canWrite, canDelete } = usePermission('products');
   const [showModal, setShowModal] = useState(false);
-  const [form, setForm] = useState({ name: '', description: '', sku: '' });
+  const [form, setForm] = useState({ name: '', description: '', sku: '', imageFile: null });
 
   const { data: products = [], isLoading } = useQuery({
     queryKey: ['products'],
@@ -20,7 +20,7 @@ export default function Products() {
     mutationFn: createProduct,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['products'] });
-      setForm({ name: '', description: '', sku: '' });
+      setForm({ name: '', description: '', sku: '', imageFile: null });
       setShowModal(false);
     },
     onError: (err) => alert(err.response?.data?.message || 'Create failed'),
@@ -34,7 +34,12 @@ export default function Products() {
 
   const create = (e) => {
     e.preventDefault();
-    createMutation.mutate(form);
+    const fd = new FormData();
+    fd.append('name', form.name);
+    if (form.sku) fd.append('sku', form.sku);
+    if (form.description) fd.append('description', form.description);
+    if (form.imageFile) fd.append('image', form.imageFile);
+    createMutation.mutate(fd);
   };
 
   const remove = (id) => {
@@ -68,9 +73,15 @@ export default function Products() {
           <div className="col-span-full text-center py-12 text-gray-500">
             <p className="text-sm">No products yet. Create your first one to get started.</p>
           </div>
-        ) : products.map((p, i) => (
+        ) : products.map((p) => (
           <div key={p._id} className="glass rounded-xl p-5 flex flex-col gap-3 hover:bg-white/[0.06] transition-all duration-200 group">
-            <span className="text-3xl font-extrabold text-white/[0.06] leading-none tabular-nums">{String(i + 1).padStart(2, '0')}</span>
+            {/* Image placeholder */}
+            <div className="w-full aspect-[4/3] rounded-lg overflow-hidden bg-brand-900/60 flex items-center justify-center mb-1">
+              {p.imageUrl
+                ? <img src={p.imageUrl} alt={p.name} className="w-full h-full object-cover" />
+                : <div className="w-full h-full bg-brand-900/80" />
+              }
+            </div>
             <div>
               <div className="text-[11px] font-medium uppercase tracking-wider text-gray-500">Product</div>
               <div className="text-base font-semibold text-gray-200">{p.name}</div>
@@ -100,7 +111,7 @@ export default function Products() {
 
       {/* Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50" onClick={() => setShowModal(false)}>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50" onClick={() => { setShowModal(false); setForm({ name: '', description: '', sku: '', imageFile: null }); }}>
           <div className="glass-strong rounded-2xl p-7 w-[460px] max-w-[95vw] shadow-2xl animate-slide-up" onClick={e => e.stopPropagation()}>
             <h2 className="text-lg font-semibold text-gray-100 mb-5">New Product</h2>
             <form onSubmit={create} className="space-y-4">
@@ -116,8 +127,18 @@ export default function Products() {
                 <label className="block text-[11px] font-medium uppercase tracking-wider text-gray-500 mb-1.5">Description</label>
                 <textarea rows={3} placeholder="Optional description..." value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} />
               </div>
+              <div>
+                <label className="block text-[11px] font-medium uppercase tracking-wider text-gray-500 mb-1.5">Product Image <span className="normal-case text-gray-600">(optional · jpg/png)</span></label>
+                <input
+                  type="file"
+                  accept=".jpg,.jpeg,.png"
+                  onChange={e => setForm({ ...form, imageFile: e.target.files[0] || null })}
+                  className="text-sm text-gray-400 file:mr-3 file:py-1 file:px-3 file:rounded file:border-0 file:text-xs file:font-medium file:bg-white/[0.06] file:text-gray-300 hover:file:bg-white/[0.10] cursor-pointer"
+                  style={{ background: 'transparent', border: 'none', boxShadow: 'none', padding: '4px 0' }}
+                />
+              </div>
               <div className="flex gap-2 justify-end pt-1">
-                <button type="button" className="px-4 py-2 rounded-lg bg-white/[0.04] border border-white/[0.08] text-gray-400 hover:bg-white/[0.08] text-sm transition-all" onClick={() => setShowModal(false)}>Cancel</button>
+                <button type="button" className="px-4 py-2 rounded-lg bg-white/[0.04] border border-white/[0.08] text-gray-400 hover:bg-white/[0.08] text-sm transition-all" onClick={() => { setShowModal(false); setForm({ name: '', description: '', sku: '', imageFile: null }); }}>Cancel</button>
                 <button type="submit" className="px-4 py-2 rounded-lg bg-brand-500 hover:bg-brand-400 text-gray-100 text-sm font-medium transition-all" disabled={createMutation.isPending}>
                   {createMutation.isPending ? 'Creating...' : 'Create Product'}
                 </button>

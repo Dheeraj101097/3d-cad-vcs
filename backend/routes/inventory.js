@@ -2,7 +2,7 @@ const router = require('express').Router();
 const ComponentGroup = require('../models/ComponentGroup');
 const Component = require('../models/Component');
 const ComponentType = require('../models/ComponentType');
-const { protect, requireActive, requireWrite, requireAdmin } = require('../middleware/auth');
+const { protect, requireActive, requireWrite, requireDelete } = require('../middleware/auth');
 
 router.use(protect, requireActive);
 
@@ -13,19 +13,19 @@ router.get('/types', async (req, res) => {
   res.json(types);
 });
 
-router.post('/types', requireWrite, async (req, res) => {
+router.post('/types', requireWrite('inventory'), async (req, res) => {
   try {
     const type = await ComponentType.create({ ...req.body, createdBy: req.user._id });
     res.status(201).json(type);
   } catch (e) { res.status(400).json({ message: e.message }); }
 });
 
-router.put('/types/:id', requireWrite, async (req, res) => {
+router.put('/types/:id', requireWrite('inventory'), async (req, res) => {
   const type = await ComponentType.findByIdAndUpdate(req.params.id, req.body, { new: true });
   res.json(type);
 });
 
-router.delete('/types/:id', requireAdmin, async (req, res) => {
+router.delete('/types/:id', requireDelete('inventory'), async (req, res) => {
   // Check if any groups use this type
   const inUse = await ComponentGroup.countDocuments({ type: req.params.id });
   if (inUse > 0) return res.status(400).json({ message: `Cannot delete — ${inUse} group(s) use this type` });
@@ -34,7 +34,7 @@ router.delete('/types/:id', requireAdmin, async (req, res) => {
 });
 
 // Seed default types if none exist
-router.post('/types/seed', requireWrite, async (req, res) => {
+router.post('/types/seed', requireWrite('inventory'), async (req, res) => {
   const count = await ComponentType.countDocuments();
   if (count > 0) return res.json({ message: 'Already seeded' });
   const defaults = [
@@ -54,19 +54,19 @@ router.get('/groups', async (req, res) => {
   res.json(groups);
 });
 
-router.post('/groups', requireWrite, async (req, res) => {
+router.post('/groups', requireWrite('inventory'), async (req, res) => {
   try {
     const group = await ComponentGroup.create({ ...req.body, createdBy: req.user._id });
     res.status(201).json(group);
   } catch (e) { res.status(400).json({ message: e.message }); }
 });
 
-router.put('/groups/:id', requireWrite, async (req, res) => {
+router.put('/groups/:id', requireWrite('inventory'), async (req, res) => {
   const group = await ComponentGroup.findByIdAndUpdate(req.params.id, req.body, { new: true });
   res.json(group);
 });
 
-router.delete('/groups/:id', requireAdmin, async (req, res) => {
+router.delete('/groups/:id', requireDelete('inventory'), async (req, res) => {
   await ComponentGroup.findByIdAndDelete(req.params.id);
   await Component.deleteMany({ group: req.params.id });
   res.json({ message: 'Deleted' });
@@ -98,14 +98,14 @@ router.get('/alerts', async (req, res) => {
   res.json({ count, items });
 });
 
-router.post('/components', requireWrite, async (req, res) => {
+router.post('/components', requireWrite('inventory'), async (req, res) => {
   try {
     const component = await Component.create({ ...req.body, createdBy: req.user._id });
     res.status(201).json(component);
   } catch (e) { res.status(400).json({ message: e.message }); }
 });
 
-router.put('/components/:id', requireWrite, async (req, res) => {
+router.put('/components/:id', requireWrite('inventory'), async (req, res) => {
   try {
     const component = await Component.findById(req.params.id);
     if (!component) return res.status(404).json({ message: 'Not found' });
@@ -116,7 +116,7 @@ router.put('/components/:id', requireWrite, async (req, res) => {
 });
 
 // Acknowledge alert
-router.post('/components/:id/acknowledge', requireWrite, async (req, res) => {
+router.post('/components/:id/acknowledge', requireWrite('inventory'), async (req, res) => {
   const component = await Component.findByIdAndUpdate(req.params.id, {
     alertAcknowledged: true,
     alertAcknowledgedAt: new Date(),
@@ -126,7 +126,7 @@ router.post('/components/:id/acknowledge', requireWrite, async (req, res) => {
 });
 
 // Stock adjustment (add/remove stock)
-router.post('/components/:id/adjust', requireWrite, async (req, res) => {
+router.post('/components/:id/adjust', requireWrite('inventory'), async (req, res) => {
   try {
     const { field, delta } = req.body; // field: 'inStock' | 'inTransit', delta: number
     const component = await Component.findById(req.params.id);
@@ -139,7 +139,7 @@ router.post('/components/:id/adjust', requireWrite, async (req, res) => {
   } catch (e) { res.status(400).json({ message: e.message }); }
 });
 
-router.delete('/components/:id', requireAdmin, async (req, res) => {
+router.delete('/components/:id', requireDelete('inventory'), async (req, res) => {
   await Component.findByIdAndDelete(req.params.id);
   res.json({ message: 'Deleted' });
 });
