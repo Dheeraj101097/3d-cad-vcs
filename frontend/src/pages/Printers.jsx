@@ -16,26 +16,25 @@ const STATE_COLOR = {
 
 function StatusDot({ state }) {
   return (
-    <span style={{
-      display: 'inline-block', width: 8, height: 8, borderRadius: '50%',
-      background: STATE_COLOR[state] || STATE_COLOR.unknown, marginRight: 6,
-    }} />
+    <span
+      className="inline-block w-2 h-2 rounded-full mr-1.5"
+      style={{ background: STATE_COLOR[state] || STATE_COLOR.unknown }}
+    />
   );
 }
 
 function StepDot({ active, done, label }) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-      <div style={{
-        width: 28, height: 28, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
-        fontSize: 13, fontWeight: 700,
-        background: done ? 'var(--accent)' : active ? 'var(--gold)' : 'var(--surface2)',
-        color: (done || active) ? '#fff' : 'var(--text-muted)',
-        border: `2px solid ${done ? 'var(--accent)' : active ? 'var(--gold)' : 'var(--border)'}`,
-      }}>
+    <div className="flex flex-col items-center gap-1">
+      <div
+        className={`w-7 h-7 rounded-full flex items-center justify-center text-[13px] font-semibold border-2 transition-all
+          ${done ? 'bg-brand-500 border-brand-500 text-white' :
+            active ? 'bg-gold border-gold text-white' :
+            'bg-white/[0.04] border-white/[0.08] text-gray-500'}`}
+      >
         {done ? '✓' : active ? '●' : '○'}
       </div>
-      <span style={{ fontSize: 10, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{label}</span>
+      <span className="text-[10px] text-gray-500 whitespace-nowrap">{label}</span>
     </div>
   );
 }
@@ -70,77 +69,76 @@ function PrinterCard({ printer, onDelete, onPrint, onEdit }) {
   const toggleSd = () => setShowSd(s => !s);
 
   return (
-    <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+    <div className="glass rounded-xl p-5 flex flex-col gap-3.5">
+      <div className="flex justify-between items-start">
         <div>
-          <div style={{ fontWeight: 700, fontSize: 16, color: 'var(--text)' }}>{printer.name}</div>
-          <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>{printer.model} · {printer.ip}</div>
+          <div className="font-semibold text-base text-gray-200">{printer.name}</div>
+          <div className="text-xs text-gray-500 mt-0.5">{printer.model} · {printer.ip}</div>
         </div>
-        <div style={{ display: 'flex', gap: 6 }}>
-          {onEdit && <button className="btn-ghost btn-sm" onClick={() => onEdit(printer)}>✎ Edit IP</button>}
-          {onDelete && <button className="btn-danger btn-sm" onClick={() => onDelete(printer._id)}>Delete</button>}
+        <div className="flex gap-1.5">
+          {onEdit && <button className="text-[11px] px-2.5 py-1 rounded-md bg-white/[0.04] border border-white/[0.08] text-gray-400 hover:bg-white/[0.08] transition-all" onClick={() => onEdit(printer)}>Edit IP</button>}
+          {onDelete && <button className="text-[11px] px-2.5 py-1 rounded-md bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 transition-all" onClick={() => onDelete(printer._id)}>Delete</button>}
         </div>
       </div>
 
       {/* Status panel */}
-      <div style={{ background: 'var(--surface2)', borderRadius: 8, padding: '12px 14px' }}>
-        {loadingStatus && !status && <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>Connecting...</span>}
-        {statusErr && !status && <span style={{ fontSize: 13, color: 'var(--danger)' }}>⚠ {statusErr.response?.data?.message || 'Unreachable'}</span>}
+      <div className="bg-white/[0.03] rounded-lg px-3.5 py-3">
+        {loadingStatus && !status && <span className="text-sm text-gray-500">Connecting...</span>}
+        {statusErr && !status && <span className="text-sm text-red-400">⚠ {statusErr.response?.data?.message || 'Unreachable'}</span>}
         {status && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span style={{ fontSize: 13, fontWeight: 600 }}>
+          <div className="flex flex-col gap-1.5">
+            <div className="flex items-center justify-between">
+              <span className="text-[13px] font-medium text-gray-200">
                 <StatusDot state={status.state} />{status.state}
               </span>
-              <button className="btn-ghost btn-sm" onClick={() => refetchStatus()} disabled={loadingStatus}>
+              <button className="text-[11px] px-2 py-0.5 rounded-md bg-white/[0.04] border border-white/[0.08] text-gray-400 hover:bg-white/[0.08] transition-all" onClick={() => refetchStatus()} disabled={loadingStatus}>
                 {loadingStatus ? '⟳' : '↻ Refresh'}
               </button>
             </div>
             {status.state === 'RUNNING' && (
               <>
-                <div style={{ background: 'var(--border)', borderRadius: 4, height: 6, overflow: 'hidden' }}>
-                  <div style={{ width: `${status.progress}%`, height: '100%', background: 'var(--accent)', transition: 'width 0.3s' }} />
+                <div className="h-1.5 bg-white/[0.06] rounded-full overflow-hidden">
+                  <div className="h-full bg-brand-400 transition-all duration-300 rounded-full" style={{ width: `${status.progress}%` }} />
                 </div>
-                <div style={{ fontSize: 12, color: 'var(--text-muted)', display: 'flex', gap: 16 }}>
+                <div className="text-xs text-gray-500 flex gap-4">
                   <span>{status.progress}% complete</span>
                   <span>~{status.remainingTime} min left</span>
                 </div>
               </>
             )}
-            <div style={{ fontSize: 12, color: 'var(--text-muted)', display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-              <span>🌡 Nozzle: {status.nozzleTemp}°C</span>
-              <span>🛏 Bed: {status.bedTemp}°C</span>
-              {status.currentFile && <span>📄 {status.currentFile}</span>}
+            <div className="text-xs text-gray-500 flex gap-4 flex-wrap">
+              <span>Nozzle: {status.nozzleTemp}°C</span>
+              <span>Bed: {status.bedTemp}°C</span>
+              {status.currentFile && <span>{status.currentFile}</span>}
             </div>
           </div>
         )}
       </div>
 
-      <div style={{ display: 'flex', gap: 8 }}>
-        {onPrint && <button className="btn-primary btn-sm" onClick={() => onPrint(printer)}>🖨 Send File to Print</button>}
-        <button className="btn-ghost btn-sm" onClick={toggleSd}>💾 {showSd ? 'Hide' : 'SD Card'}</button>
+      <div className="flex gap-2">
+        {onPrint && <button className="text-xs font-medium px-3 py-1.5 rounded-md bg-brand-500/80 text-gray-200 hover:bg-brand-500 transition-all" onClick={() => onPrint(printer)}>Send File to Print</button>}
+        <button className="text-xs px-3 py-1.5 rounded-md bg-white/[0.04] border border-white/[0.08] text-gray-400 hover:bg-white/[0.08] transition-all" onClick={toggleSd}>{showSd ? 'Hide' : 'SD Card'}</button>
       </div>
 
       {/* SD Card browser */}
       {showSd && (
-        <div style={{ borderTop: '1px solid var(--border)', paddingTop: 12 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-            <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>SD Card Files</span>
-            <button className="btn-ghost btn-sm" onClick={() => refetchSd()} style={{ fontSize: 11 }}>↻ Refresh</button>
+        <div className="border-t border-white/[0.06] pt-3">
+          <div className="flex justify-between items-center mb-2">
+            <span className="text-[11px] font-medium uppercase tracking-wider text-gray-500">SD Card Files</span>
+            <button className="text-[11px] px-2 py-0.5 rounded-md bg-white/[0.04] border border-white/[0.08] text-gray-400 hover:bg-white/[0.08] transition-all" onClick={() => refetchSd()}>↻ Refresh</button>
           </div>
-          {sdLoading && <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>Reading SD card...</p>}
-          {sdErr && <p style={{ fontSize: 13, color: 'var(--danger)' }}>⚠ {sdErr.response?.data?.message || 'Could not read SD card'}</p>}
+          {sdLoading && <p className="text-sm text-gray-500">Reading SD card...</p>}
+          {sdErr && <p className="text-sm text-red-400">⚠ {sdErr.response?.data?.message || 'Could not read SD card'}</p>}
           {!sdLoading && sdFiles.length === 0 && !sdErr && (
-            <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>No .3mf or .gcode files found</p>
+            <p className="text-sm text-gray-500">No .3mf or .gcode files found</p>
           )}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, maxHeight: 220, overflowY: 'auto' }}>
+          <div className="flex flex-col gap-1 max-h-[220px] overflow-y-auto">
             {sdFiles.map(f => (
-              <div key={f.name} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px', background: 'var(--surface2)', borderRadius: 6, fontSize: 12 }}>
-                <span style={{ flex: 1, fontFamily: 'monospace', color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.name}</span>
-                <span style={{ color: 'var(--text-muted)', flexShrink: 0 }}>{f.size ? `${(f.size / 1024 / 1024).toFixed(1)} MB` : ''}</span>
+              <div key={f.name} className="flex items-center gap-2 px-2.5 py-1.5 bg-white/[0.03] rounded-md text-xs">
+                <span className="flex-1 font-mono text-gray-300 overflow-hidden text-ellipsis whitespace-nowrap">{f.name}</span>
+                <span className="text-gray-500 flex-shrink-0">{f.size ? `${(f.size / 1024 / 1024).toFixed(1)} MB` : ''}</span>
                 <button
-                  className="btn-danger btn-sm"
-                  style={{ fontSize: 10, padding: '2px 7px', flexShrink: 0 }}
+                  className="text-[10px] px-1.5 py-0.5 rounded bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 transition-all flex-shrink-0"
                   disabled={deleteSdMutation.isPending}
                   onClick={() => {
                     if (!confirm(`Delete "${f.name}" from printer SD card?`)) return;
@@ -263,20 +261,24 @@ export default function Printers() {
 
   return (
     <>
-      <div className="page-header">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-7">
         <div>
-          <h1>Printers</h1>
-          <p className="page-subtitle">{printers.length} printer{printers.length !== 1 ? 's' : ''} configured</p>
+          <h1 className="text-2xl font-semibold text-gray-100 tracking-tight">Printers</h1>
+          <p className="text-sm text-gray-500 mt-1">{printers.length} printer{printers.length !== 1 ? 's' : ''} configured</p>
         </div>
-        {canWrite && <button className="btn-primary" onClick={() => setShowAdd(true)}>+ Add Printer</button>}
+        {canWrite && (
+          <button className="px-4 py-2 rounded-lg bg-brand-500 hover:bg-brand-400 text-gray-100 text-sm font-medium transition-all shadow-lg shadow-brand-500/20" onClick={() => setShowAdd(true)}>
+            + Add Printer
+          </button>
+        )}
       </div>
 
       {printersLoading ? <PageLoading /> : (
-        <div className="grid page-fade">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 animate-fade-in">
           {printers.length === 0 ? (
-            <div className="empty-state" style={{ gridColumn: '1/-1' }}>
-              <div className="empty-state-icon">🖨</div>
-              <p>No printers added yet. Add your Bambu Lab printer to get started.</p>
+            <div className="col-span-full text-center py-12 text-gray-500">
+              <p className="text-sm">No printers added yet. Add your Bambu Lab printer to get started.</p>
             </div>
           ) : printers.map(p => (
             <PrinterCard
@@ -292,48 +294,48 @@ export default function Printers() {
 
       {/* Add Printer Modal */}
       {showAdd && (
-        <div className="modal-overlay" onClick={() => setShowAdd(false)}>
-          <div className="modal" onClick={e => e.stopPropagation()}>
-            <h2>Add Bambu Lab Printer</h2>
-            <form onSubmit={(e) => { e.preventDefault(); addMutation.mutate(form); }}>
-              <div className="form-group">
-                <label>Printer Name</label>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50" onClick={() => setShowAdd(false)}>
+          <div className="glass-strong rounded-2xl p-7 w-[460px] max-w-[95vw] shadow-2xl animate-slide-up" onClick={e => e.stopPropagation()}>
+            <h2 className="text-lg font-semibold text-gray-100 mb-5">Add Bambu Lab Printer</h2>
+            <form onSubmit={(e) => { e.preventDefault(); addMutation.mutate(form); }} className="space-y-4">
+              <div>
+                <label className="block text-[11px] font-medium uppercase tracking-wider text-gray-500 mb-1.5">Printer Name</label>
                 <input placeholder="e.g. Workshop X1C" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} required />
               </div>
-              <div className="form-group">
-                <label>Model</label>
+              <div>
+                <label className="block text-[11px] font-medium uppercase tracking-wider text-gray-500 mb-1.5">Model</label>
                 <select value={form.model} onChange={e => setForm({ ...form, model: e.target.value })}>
                   {['X1C', 'X1E', 'P1P', 'P1S', 'A1', 'A1 Mini'].map(m => <option key={m}>{m}</option>)}
                 </select>
               </div>
-              <div className="form-group">
-                <label>Printer IP Address</label>
+              <div>
+                <label className="block text-[11px] font-medium uppercase tracking-wider text-gray-500 mb-1.5">Printer IP Address</label>
                 <input placeholder="192.168.1.x" value={form.ip} onChange={e => setForm({ ...form, ip: e.target.value })} required />
               </div>
-              <div className="form-group">
-                <label>Serial Number</label>
+              <div>
+                <label className="block text-[11px] font-medium uppercase tracking-wider text-gray-500 mb-1.5">Serial Number</label>
                 <input placeholder="Found in Settings on printer screen" value={form.serial} onChange={e => setForm({ ...form, serial: e.target.value })} required />
               </div>
-              <div className="form-group">
-                <label>Access Code</label>
+              <div>
+                <label className="block text-[11px] font-medium uppercase tracking-wider text-gray-500 mb-1.5">Access Code</label>
                 <input placeholder="Found in Settings → LAN mode" value={form.accessCode} onChange={e => setForm({ ...form, accessCode: e.target.value })} required />
               </div>
-              <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 16 }}>
+              <p className="text-xs text-gray-500">
                 Find Serial & Access Code on the printer: Settings → Network → LAN Mode Liveview
               </p>
-              <div style={{ background: 'var(--surface2)', borderRadius: 8, padding: '12px 14px', marginBottom: 16 }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--gold)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Remote Access (optional)</div>
-                <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label>Agent Token</label>
+              <div className="bg-white/[0.03] rounded-lg px-3.5 py-3">
+                <div className="text-[11px] font-medium uppercase tracking-wider text-gold mb-2">Remote Access (optional)</div>
+                <div>
+                  <label className="block text-[11px] font-medium uppercase tracking-wider text-gray-500 mb-1.5">Agent Token</label>
                   <input placeholder="Leave empty if portal is on same network" value={form.agentToken} onChange={e => setForm({ ...form, agentToken: e.target.value })} />
                 </div>
-                <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6 }}>
+                <p className="text-[11px] text-gray-500 mt-1.5">
                   Run the local agent on your workshop PC and paste the same token here to enable remote printing from anywhere.
                 </p>
               </div>
-              <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-                <button type="button" className="btn-ghost" onClick={() => setShowAdd(false)}>Cancel</button>
-                <button type="submit" className="btn-primary" disabled={addMutation.isPending}>
+              <div className="flex gap-2 justify-end pt-1">
+                <button type="button" className="px-4 py-2 rounded-lg bg-white/[0.04] border border-white/[0.08] text-gray-400 hover:bg-white/[0.08] text-sm transition-all" onClick={() => setShowAdd(false)}>Cancel</button>
+                <button type="submit" className="px-4 py-2 rounded-lg bg-brand-500 hover:bg-brand-400 text-gray-100 text-sm font-medium transition-all" disabled={addMutation.isPending}>
                   {addMutation.isPending ? 'Adding...' : 'Add Printer'}
                 </button>
               </div>
@@ -344,12 +346,12 @@ export default function Printers() {
 
       {/* Print Modal */}
       {showPrint && selectedPrinter && (
-        <div className="modal-overlay" onClick={() => setShowPrint(false)}>
-          <div className="modal" onClick={e => e.stopPropagation()}>
-            <h2>Send to {selectedPrinter.name}</h2>
-            <form onSubmit={sendFile}>
-              <div className="form-group">
-                <label>Select File (3MF only)</label>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50" onClick={() => setShowPrint(false)}>
+          <div className="glass-strong rounded-2xl p-7 w-[460px] max-w-[95vw] shadow-2xl animate-slide-up" onClick={e => e.stopPropagation()}>
+            <h2 className="text-lg font-semibold text-gray-100 mb-5">Send to {selectedPrinter.name}</h2>
+            <form onSubmit={sendFile} className="space-y-4">
+              <div>
+                <label className="block text-[11px] font-medium uppercase tracking-wider text-gray-500 mb-1.5">Select File (3MF only)</label>
                 <select
                   value={printForm.versionId}
                   onChange={e => { setPrintForm({ ...printForm, versionId: e.target.value }); setPrintStep('idle'); setUploadedFileName(''); setPrintResult(''); }}
@@ -361,22 +363,22 @@ export default function Printers() {
                   {printOptions.map(v => <option key={v._id} value={v._id}>{v.label}</option>)}
                 </select>
                 {!loadingOptions && printOptions.length === 0 && (
-                  <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>No .3mf versions found.</p>
+                  <p className="text-xs text-gray-500 mt-1">No .3mf versions found.</p>
                 )}
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 16 }}>
+              <div className="flex flex-col gap-2.5">
                 {[
                   { key: 'bedLeveling', label: 'Bed Leveling' },
                   { key: 'useAms',      label: 'Use AMS (multi-color)' },
                   { key: 'timelapse',   label: 'Record Timelapse' },
                 ].map(opt => (
-                  <label key={opt.key} style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', fontSize: 14 }}>
+                  <label key={opt.key} className="flex items-center gap-2.5 cursor-pointer text-sm text-gray-300">
                     <input
                       type="checkbox"
                       checked={printForm[opt.key]}
                       onChange={e => setPrintForm({ ...printForm, [opt.key]: e.target.checked })}
-                      style={{ width: 16, height: 16 }}
+                      className="!w-4 !h-4 rounded accent-brand-500"
                       disabled={['uploading', 'starting', 'done'].includes(printStep)}
                     />
                     {opt.label}
@@ -385,37 +387,36 @@ export default function Printers() {
               </div>
 
               {printResult && (
-                <div style={{
-                  padding: '10px 14px', borderRadius: 8, marginBottom: 16, fontSize: 13,
-                  background: printResult.startsWith('✓') ? '#d4ede3' : '#fdf0ef',
-                  color: printResult.startsWith('✓') ? 'var(--success)' : 'var(--danger)',
-                  border: `1px solid ${printResult.startsWith('✓') ? '#a8d5bc' : '#f5c6c2'}`,
-                }}>
+                <div className={`px-3.5 py-2.5 rounded-lg text-sm ${
+                  printResult.startsWith('✓')
+                    ? 'bg-brand-500/15 text-brand-200 border border-brand-500/20'
+                    : 'bg-red-500/10 text-red-400 border border-red-500/20'
+                }`}>
                   {printResult}
                 </div>
               )}
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+              <div className="flex items-center gap-2">
                 <StepDot active={['uploading', 'uploaded', 'starting', 'done'].includes(printStep)} done={['uploaded', 'starting', 'done'].includes(printStep)} label="1. Send File" />
-                <div style={{ flex: 1, height: 1, background: ['uploaded', 'starting', 'done'].includes(printStep) ? 'var(--accent)' : 'var(--border)' }} />
+                <div className={`flex-1 h-px transition-colors ${['uploaded', 'starting', 'done'].includes(printStep) ? 'bg-brand-400' : 'bg-white/[0.08]'}`} />
                 <StepDot active={['starting', 'done'].includes(printStep)} done={printStep === 'done'} label="2. Start Print" />
               </div>
 
-              <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-                <button type="button" className="btn-ghost" onClick={() => setShowPrint(false)}>Close</button>
+              <div className="flex gap-2 justify-end pt-1">
+                <button type="button" className="px-4 py-2 rounded-lg bg-white/[0.04] border border-white/[0.08] text-gray-400 hover:bg-white/[0.08] text-sm transition-all" onClick={() => setShowPrint(false)}>Close</button>
 
                 {(printStep === 'idle' || printStep === 'error') && (
-                  <button type="submit" className="btn-primary" disabled={!printForm.versionId || uploadMutation.isPending}>
-                    {uploadMutation.isPending ? '⟳ Uploading...' : '📤 Send File to Printer'}
+                  <button type="submit" className="px-4 py-2 rounded-lg bg-brand-500 hover:bg-brand-400 text-gray-100 text-sm font-medium transition-all" disabled={!printForm.versionId || uploadMutation.isPending}>
+                    {uploadMutation.isPending ? '⟳ Uploading...' : 'Send File to Printer'}
                   </button>
                 )}
-                {printStep === 'uploading' && <button className="btn-primary" disabled>⟳ Uploading...</button>}
+                {printStep === 'uploading' && <button className="px-4 py-2 rounded-lg bg-brand-500 text-gray-100 text-sm" disabled>⟳ Uploading...</button>}
                 {printStep === 'uploaded' && (
-                  <button type="button" className="btn-primary" onClick={handleStartPrint}>🖨 Start Print</button>
+                  <button type="button" className="px-4 py-2 rounded-lg bg-brand-500 hover:bg-brand-400 text-gray-100 text-sm font-medium transition-all" onClick={handleStartPrint}>Start Print</button>
                 )}
-                {printStep === 'starting' && <button className="btn-primary" disabled>⟳ Starting...</button>}
+                {printStep === 'starting' && <button className="px-4 py-2 rounded-lg bg-brand-500 text-gray-100 text-sm" disabled>⟳ Starting...</button>}
                 {printStep === 'done' && (
-                  <button type="button" className="btn-ghost" onClick={() => { setPrintStep('idle'); setUploadedFileName(''); setPrintResult(''); }}>
+                  <button type="button" className="px-4 py-2 rounded-lg bg-white/[0.04] border border-white/[0.08] text-gray-400 hover:bg-white/[0.08] text-sm transition-all" onClick={() => { setPrintStep('idle'); setUploadedFileName(''); setPrintResult(''); }}>
                     Send Another
                   </button>
                 )}
@@ -427,23 +428,39 @@ export default function Printers() {
 
       {/* Edit Printer Modal */}
       {editPrinter && (
-        <div className="modal-overlay" onClick={() => setEditPrinter(null)}>
-          <div className="modal" onClick={e => e.stopPropagation()}>
-            <h2>Edit Printer</h2>
-            <form onSubmit={(e) => { e.preventDefault(); editMutation.mutate({ id: editPrinter._id, data: { name: editPrinter.name, ip: editPrinter.ip, serial: editPrinter.serial, accessCode: editPrinter.accessCode, model: editPrinter.model, agentToken: editPrinter.agentToken } }); }}>
-              <div className="form-group"><label>Printer Name</label><input value={editPrinter.name} onChange={e => setEditPrinter({ ...editPrinter, name: e.target.value })} required /></div>
-              <div className="form-group"><label>Model</label>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50" onClick={() => setEditPrinter(null)}>
+          <div className="glass-strong rounded-2xl p-7 w-[460px] max-w-[95vw] shadow-2xl animate-slide-up" onClick={e => e.stopPropagation()}>
+            <h2 className="text-lg font-semibold text-gray-100 mb-5">Edit Printer</h2>
+            <form onSubmit={(e) => { e.preventDefault(); editMutation.mutate({ id: editPrinter._id, data: { name: editPrinter.name, ip: editPrinter.ip, serial: editPrinter.serial, accessCode: editPrinter.accessCode, model: editPrinter.model, agentToken: editPrinter.agentToken } }); }} className="space-y-4">
+              <div>
+                <label className="block text-[11px] font-medium uppercase tracking-wider text-gray-500 mb-1.5">Printer Name</label>
+                <input value={editPrinter.name} onChange={e => setEditPrinter({ ...editPrinter, name: e.target.value })} required />
+              </div>
+              <div>
+                <label className="block text-[11px] font-medium uppercase tracking-wider text-gray-500 mb-1.5">Model</label>
                 <select value={editPrinter.model} onChange={e => setEditPrinter({ ...editPrinter, model: e.target.value })}>
                   {['X1C', 'X1E', 'P1P', 'P1S', 'A1', 'A1 Mini'].map(m => <option key={m}>{m}</option>)}
                 </select>
               </div>
-              <div className="form-group"><label>IP Address</label><input value={editPrinter.ip} onChange={e => setEditPrinter({ ...editPrinter, ip: e.target.value })} required /></div>
-              <div className="form-group"><label>Serial Number</label><input value={editPrinter.serial} onChange={e => setEditPrinter({ ...editPrinter, serial: e.target.value })} required /></div>
-              <div className="form-group"><label>Access Code</label><input value={editPrinter.accessCode} onChange={e => setEditPrinter({ ...editPrinter, accessCode: e.target.value })} required /></div>
-              <div className="form-group"><label>Agent Token (optional)</label><input value={editPrinter.agentToken || ''} onChange={e => setEditPrinter({ ...editPrinter, agentToken: e.target.value })} /></div>
-              <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-                <button type="button" className="btn-ghost" onClick={() => setEditPrinter(null)}>Cancel</button>
-                <button type="submit" className="btn-primary" disabled={editMutation.isPending}>
+              <div>
+                <label className="block text-[11px] font-medium uppercase tracking-wider text-gray-500 mb-1.5">IP Address</label>
+                <input value={editPrinter.ip} onChange={e => setEditPrinter({ ...editPrinter, ip: e.target.value })} required />
+              </div>
+              <div>
+                <label className="block text-[11px] font-medium uppercase tracking-wider text-gray-500 mb-1.5">Serial Number</label>
+                <input value={editPrinter.serial} onChange={e => setEditPrinter({ ...editPrinter, serial: e.target.value })} required />
+              </div>
+              <div>
+                <label className="block text-[11px] font-medium uppercase tracking-wider text-gray-500 mb-1.5">Access Code</label>
+                <input value={editPrinter.accessCode} onChange={e => setEditPrinter({ ...editPrinter, accessCode: e.target.value })} required />
+              </div>
+              <div>
+                <label className="block text-[11px] font-medium uppercase tracking-wider text-gray-500 mb-1.5">Agent Token (optional)</label>
+                <input value={editPrinter.agentToken || ''} onChange={e => setEditPrinter({ ...editPrinter, agentToken: e.target.value })} />
+              </div>
+              <div className="flex gap-2 justify-end pt-1">
+                <button type="button" className="px-4 py-2 rounded-lg bg-white/[0.04] border border-white/[0.08] text-gray-400 hover:bg-white/[0.08] text-sm transition-all" onClick={() => setEditPrinter(null)}>Cancel</button>
+                <button type="submit" className="px-4 py-2 rounded-lg bg-brand-500 hover:bg-brand-400 text-gray-100 text-sm font-medium transition-all" disabled={editMutation.isPending}>
                   {editMutation.isPending ? 'Saving...' : 'Save Changes'}
                 </button>
               </div>

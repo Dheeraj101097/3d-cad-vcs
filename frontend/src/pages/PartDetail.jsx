@@ -32,27 +32,29 @@ export default function PartDetail() {
     }, { replace: true });
   };
 
-  if (!part) return <p style={{ color: 'var(--text-muted-dark)' }}>Loading...</p>;
+  if (!part) return <p className="text-gray-500 text-sm py-4">Loading...</p>;
 
   return (
     <>
-      <div className="breadcrumb">
-        <Link to="/products">Products</Link>
-        <span className="breadcrumb-sep">›</span>
-        <Link to={`/products/${part.product?._id}`}>{part.product?.name || 'Product'}</Link>
-        <span className="breadcrumb-sep">›</span>
-        <span style={{ color: 'var(--text-on-dark)' }}>{part.name}</span>
+      {/* Breadcrumb */}
+      <div className="flex items-center gap-2 mb-5 text-sm">
+        <Link to="/products" className="text-gray-500 hover:text-gray-300 transition-colors">Products</Link>
+        <span className="text-gray-600">›</span>
+        <Link to={`/products/${part.product?._id}`} className="text-gray-500 hover:text-gray-300 transition-colors">{part.product?.name || 'Product'}</Link>
+        <span className="text-gray-600">›</span>
+        <span className="text-gray-200">{part.name}</span>
       </div>
 
-      <div className="page-header">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-5">
         <div>
-          <h1>{part.name}</h1>
-          {part.description && <p className="page-subtitle">{part.description}</p>}
+          <h1 className="text-2xl font-semibold text-gray-100 tracking-tight">{part.name}</h1>
+          {part.description && <p className="text-sm text-gray-500 mt-1">{part.description}</p>}
         </div>
       </div>
 
       {/* Tab switcher */}
-      <div style={{ display: 'flex', gap: 4, marginBottom: 20, borderBottom: '1px solid var(--border-dark)', paddingBottom: 0 }}>
+      <div className="flex gap-1 mb-5 border-b border-white/[0.06] pb-0">
         {[
           { key: 'gcode', label: `G-Code / 3MF (${gcodeVersions.length})` },
           { key: 'stl',   label: `STL Files (${stlVersions.length})` },
@@ -60,13 +62,11 @@ export default function PartDetail() {
           <button
             key={t.key}
             onClick={() => setTab(t.key)}
-            style={{
-              background: 'transparent', border: 'none',
-              borderBottom: tab === t.key ? '2px solid var(--gold)' : '2px solid transparent',
-              color: tab === t.key ? 'var(--text-on-dark)' : 'var(--text-muted-dark)',
-              padding: '8px 16px', fontWeight: tab === t.key ? 700 : 400,
-              fontSize: 14, cursor: 'pointer', borderRadius: 0, marginBottom: -1,
-            }}
+            className={`px-4 py-2 text-sm font-normal transition-all duration-150 rounded-none border-b-2 -mb-px
+              ${tab === t.key
+                ? 'border-gold text-gray-100 font-medium'
+                : 'border-transparent text-gray-500 hover:text-gray-300'
+              }`}
           >
             {t.label}
           </button>

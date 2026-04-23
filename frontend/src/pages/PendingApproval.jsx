@@ -22,44 +22,38 @@ export default function PendingApproval() {
   };
 
   return (
-    <div style={{
-      minHeight: '100vh', background: 'var(--bg)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      padding: 24,
-    }}>
-      <div style={{
-        background: 'var(--surface)', borderRadius: 16, padding: '48px 40px',
-        maxWidth: 460, width: '100%', textAlign: 'center',
-        boxShadow: 'var(--shadow-md)', border: '1px solid var(--border)',
-      }}>
-        <div style={{ fontSize: 48, marginBottom: 20 }}>
+    <div className="min-h-screen flex items-center justify-center bg-brand-900 p-6 relative overflow-hidden">
+      {/* Background glow */}
+      <div className="absolute top-[-30%] left-[-10%] w-[600px] h-[600px] rounded-full bg-brand-500/10 blur-[120px] pointer-events-none" />
+
+      <div className="relative w-full max-w-[440px] glass-strong rounded-2xl p-10 shadow-2xl text-center animate-fade-in">
+        <div className="text-5xl mb-5">
           {isRevoked ? '🚫' : '⏳'}
         </div>
-        <h1 style={{ fontSize: 22, fontWeight: 800, color: 'var(--text)', marginBottom: 12 }}>
+        <h1 className="text-xl font-semibold text-gray-100 mb-3">
           {isRevoked ? 'Access Revoked' : 'Awaiting Approval'}
         </h1>
-        <p style={{ color: 'var(--text-muted)', fontSize: 14, lineHeight: 1.7, marginBottom: 8 }}>
+        <p className="text-sm text-gray-400 leading-relaxed mb-2">
           {isRevoked
             ? 'Your access to this workspace has been revoked by an administrator.'
             : `Your account (${user?.email}) has been registered successfully.`}
         </p>
         {!isRevoked && (
-          <p style={{ color: 'var(--text-muted)', fontSize: 14, lineHeight: 1.7, marginBottom: 32 }}>
+          <p className="text-sm text-gray-400 leading-relaxed mb-8">
             An admin needs to approve your request before you can access the workspace.
-            Once approved, click <strong>Check Status</strong> below.
+            Once approved, click <strong className="text-gray-200">Check Status</strong> below.
           </p>
         )}
         {isRevoked && (
-          <p style={{ color: 'var(--text-muted)', fontSize: 14, lineHeight: 1.7, marginBottom: 32 }}>
+          <p className="text-sm text-gray-400 leading-relaxed mb-8">
             Contact an administrator if you believe this is a mistake.
           </p>
         )}
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <div className="flex flex-col gap-3">
           {!isRevoked && (
             <button
-              className="btn-primary"
-              style={{ width: '100%', padding: '11px 18px', fontSize: 14 }}
+              className="w-full py-2.5 rounded-lg bg-brand-500 hover:bg-brand-400 text-gray-100 font-medium text-sm transition-all shadow-lg shadow-brand-500/20"
               onClick={handleRefresh}
               disabled={checking}
             >
@@ -67,8 +61,7 @@ export default function PendingApproval() {
             </button>
           )}
           <button
-            className="btn-ghost"
-            style={{ width: '100%', padding: '11px 18px', fontSize: 14 }}
+            className="w-full py-2.5 rounded-lg bg-white/[0.04] border border-white/[0.08] text-gray-400 hover:bg-white/[0.08] hover:text-gray-200 font-medium text-sm transition-all"
             onClick={logout}
           >
             Sign Out
