@@ -10,6 +10,7 @@ const gcodeVersionSchema = new mongoose.Schema({
   filePath: { type: String, required: true },
   gcodePreviewPath: { type: String },   // extracted .gcode path for .3mf files
   meshPath: { type: String },           // extracted 3D mesh .model path for solid view
+  thumbnailPath: { type: String },
   fileSize: { type: Number },
   notes: { type: String },                     // changelog / notes for this version
   isLatest: { type: Boolean, default: true },

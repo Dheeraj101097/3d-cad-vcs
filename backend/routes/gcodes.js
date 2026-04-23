@@ -4,7 +4,8 @@ const path = require('path');
 const fs = require('fs');
 const AdmZip = require('adm-zip');
 const GCodeVersion = require('../models/GCodeVersion');
-const { protect } = require('../middleware/auth');
+const Part = require('../models/Part');
+const { protect, requireActive, requireWrite, requireDelete } = require('../middleware/auth');
 
 // Extract gcode and mesh from a Bambu Lab .3mf ZIP archive
 function extractFrom3mf(zipPath, destDir) {
@@ -59,7 +60,7 @@ const upload = multer({
   }
 });
 
-router.use(protect);
+router.use(protect, requireActive);
 
 // Get all versions for a part
 router.get('/part/:partId', async (req, res) => {
@@ -72,7 +73,7 @@ router.get('/part/:partId', async (req, res) => {
 });
 
 // Upload new version
-router.post('/part/:partId', upload.single('file'), async (req, res) => {
+router.post('/part/:partId', requireWrite('products'), upload.single('file'), async (req, res) => {
   try {
     const { notes } = req.body;
     const partId = req.params.partId;
@@ -97,6 +98,30 @@ router.post('/part/:partId', upload.single('file'), async (req, res) => {
       if (extracted.meshPath) meshPath = extracted.meshPath;
     }
 
+    // Thumbnail extraction from 3mf
+    let thumbnailUrl = null;
+    if (ext === '3mf') {
+      try {
+        const thumbZip = new AdmZip(req.file.path);
+        const thumbEntries = thumbZip.getEntries();
+        const thumbEntry =
+          thumbEntries.find(e => /thumbnails\/.*\.(png|jpe?g)$/i.test(e.entryName)) ||
+          thumbEntries.find(e => /metadata\/plate_\d+\.(png|jpe?g)$/i.test(e.entryName)) ||
+          thumbEntries.find(e => /\.(png|jpe?g)$/i.test(e.entryName));
+        if (thumbEntry) {
+          const thumbDir = path.join(__dirname, '../uploads/thumbnails');
+          fs.mkdirSync(thumbDir, { recursive: true });
+          const thumbFilename = `thumb_${partId}_${Date.now()}.png`;
+          const thumbPath = path.join(thumbDir, thumbFilename);
+          fs.writeFileSync(thumbPath, thumbEntry.getData());
+          thumbnailUrl = `/uploads/thumbnails/${thumbFilename}`;
+          await Part.findByIdAndUpdate(partId, { thumbnailUrl });
+        }
+      } catch (thumbErr) {
+        console.error('Thumbnail extraction failed:', thumbErr.message);
+      }
+    }
+
     const gcode = await GCodeVersion.create({
       part: partId,
       version,
@@ -107,6 +132,7 @@ router.post('/part/:partId', upload.single('file'), async (req, res) => {
       filePath: req.file.path,
       gcodePreviewPath,
       meshPath,
+      thumbnailPath: thumbnailUrl,
       fileSize: req.file.size,
       notes,
       isLatest: true,
@@ -117,6 +143,21 @@ router.post('/part/:partId', upload.single('file'), async (req, res) => {
   } catch (e) {
     res.status(400).json({ message: e.message });
   }
+});
+
+// Print options — all 3MF versions with nested product › part label (for print modal)
+router.get('/print-options', async (req, res) => {
+  const versions = await GCodeVersion.find({ fileType: '3mf' })
+    .select('version originalName part')
+    .populate({ path: 'part', select: 'name product', populate: { path: 'product', select: 'name' } })
+    .sort({ createdAt: -1 })
+    .lean();
+  res.json(versions.map(v => ({
+    _id: v._id,
+    version: v.version,
+    originalName: v.originalName,
+    label: `${v.part?.product?.name ?? '?'} › ${v.part?.name ?? '?'} › ${v.version} (${v.originalName})`
+  })));
 });
 
 // Get raw file content (for renderer) — uses extracted gcode for .3mf files
@@ -142,7 +183,7 @@ router.get('/:id/download', async (req, res) => {
   res.download(path.resolve(gcode.filePath), gcode.originalName);
 });
 
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', requireDelete('products'), async (req, res) => {
   const gcode = await GCodeVersion.findById(req.params.id).select('filePath').lean();
   if (!gcode) return res.status(404).json({ message: 'Not found' });
   fs.unlink(gcode.filePath, () => {});

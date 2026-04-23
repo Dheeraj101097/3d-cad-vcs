@@ -4,7 +4,8 @@ const productSchema = new mongoose.Schema({
   name: { type: String, required: true },
   description: { type: String },
   sku: { type: String, sparse: true },
-  createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
+  createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  imageUrl: { type: String }
 }, { timestamps: true });
 
 productSchema.index({ sku: 1 }, { unique: true, sparse: true });

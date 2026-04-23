@@ -3,7 +3,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const StlVersion = require('../models/StlVersion');
-const { protect } = require('../middleware/auth');
+const { protect, requireActive, requireWrite, requireDelete } = require('../middleware/auth');
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -23,7 +23,7 @@ const upload = multer({
   limits: { fileSize: 100 * 1024 * 1024 } // 100MB
 });
 
-router.use(protect);
+router.use(protect, requireActive);
 
 // Get all STL versions for a part
 router.get('/part/:partId', async (req, res) => {
@@ -36,7 +36,7 @@ router.get('/part/:partId', async (req, res) => {
 });
 
 // Upload new STL version
-router.post('/part/:partId', upload.single('file'), async (req, res) => {
+router.post('/part/:partId', requireWrite('products'), upload.single('file'), async (req, res) => {
   try {
     const { notes } = req.body;
     const partId = req.params.partId;
@@ -78,7 +78,7 @@ router.get('/:id/download', async (req, res) => {
   res.download(path.resolve(stl.filePath), stl.originalName);
 });
 
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', requireDelete('products'), async (req, res) => {
   const stl = await StlVersion.findById(req.params.id).select('filePath').lean();
   if (!stl) return res.status(404).json({ message: 'Not found' });
   fs.unlink(stl.filePath, () => {});

@@ -22,92 +22,65 @@ export default function Login() {
   };
 
   return (
-    <div style={{
-      display: 'flex', minHeight: '100vh',
-      background: 'var(--bg)'
-    }}>
-      {/* Left panel */}
-      <div style={{
-        flex: 1, background: 'var(--bg-deep)',
-        display: 'flex', flexDirection: 'column',
-        justifyContent: 'center', padding: '60px',
-        borderRight: '1px solid var(--border-dark)'
-      }}>
-        <div style={{ maxWidth: 400 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 40 }}>
-            <div style={{
-              width: 42, height: 42, background: 'var(--gold)',
-              borderRadius: 10, display: 'flex', alignItems: 'center',
-              justifyContent: 'center', fontSize: 20
-            }}>⚙</div>
-            <span style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-on-dark)' }}>CAD Portal</span>
-          </div>
-          <h1 style={{ fontSize: 32, fontWeight: 800, color: 'var(--text-on-dark)', lineHeight: 1.2, marginBottom: 14 }}>
-            Version control<br />for your designs
-          </h1>
-          <p style={{ color: 'var(--text-muted-dark)', fontSize: 15, lineHeight: 1.6 }}>
-            Manage G-code and 3MF files across products and parts. Track every version, preview toolpaths in 3D.
-          </p>
-          <div style={{ marginTop: 40, display: 'flex', flexDirection: 'column', gap: 14 }}>
-            {['Upload .gcode & .3mf files', 'Full version history per part', '3D toolpath preview', 'Multi-filament color support'].map(f => (
-              <div key={f} style={{ display: 'flex', alignItems: 'center', gap: 10, color: 'var(--text-muted-dark)', fontSize: 14 }}>
-                <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--gold)', flexShrink: 0 }} />
-                {f}
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
+    <div className="min-h-screen flex items-center justify-center bg-brand-900 p-6 relative overflow-hidden">
+      {/* Background glow */}
+      <div className="absolute top-[-30%] left-[-10%] w-[600px] h-[600px] rounded-full bg-brand-500/10 blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-[-20%] right-[-10%] w-[500px] h-[500px] rounded-full bg-gold/5 blur-[100px] pointer-events-none" />
 
-      {/* Right panel */}
-      <div style={{
-        width: 460, display: 'flex', alignItems: 'center',
-        justifyContent: 'center', padding: '40px',
-        background: 'var(--surface)'
-      }}>
-        <div style={{ width: '100%', maxWidth: 360 }}>
-          <h2 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text)', marginBottom: 6 }}>
+      {/* Card */}
+      <div className="relative w-full max-w-[420px] glass-strong rounded-2xl p-8 sm:p-10 shadow-2xl animate-fade-in">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <h1 className="text-xl font-semibold text-gray-100 tracking-wide mb-1">
             {mode === 'login' ? 'Welcome back' : 'Create account'}
-          </h2>
-          <p style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 28 }}>
-            {mode === 'login' ? 'Sign in to access your workspace' : 'Get started with CAD Portal'}
-          </p>
-
-          {error && (
-            <div style={{
-              background: '#fdf0ef', border: '1px solid #f5c6c2',
-              borderRadius: 8, padding: '10px 14px',
-              color: 'var(--danger)', fontSize: 13, marginBottom: 18
-            }}>{error}</div>
-          )}
-
-          <form onSubmit={submit}>
-            {mode === 'register' && (
-              <div className="form-group">
-                <label>Full Name</label>
-                <input placeholder="[name]" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} required />
-              </div>
-            )}
-            <div className="form-group">
-              <label>Email Address</label>
-              <input type="email" placeholder="[email]" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} required />
-            </div>
-            <div className="form-group">
-              <label>Password</label>
-              <input type="password" placeholder="••••••••" value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} required />
-            </div>
-            <button type="submit" className="btn-primary" style={{ width: '100%', marginTop: 8, padding: '11px 18px', fontSize: 14 }}>
-              {mode === 'login' ? 'Sign In' : 'Create Account'}
-            </button>
-          </form>
-
-          <p style={{ marginTop: 20, fontSize: 13, color: 'var(--text-muted)', textAlign: 'center' }}>
-            {mode === 'login' ? "Don't have an account? " : 'Already have an account? '}
-            <a href="#" onClick={e => { e.preventDefault(); setMode(mode === 'login' ? 'register' : 'login'); }}>
-              {mode === 'login' ? 'Register' : 'Sign in'}
-            </a>
+          </h1>
+          <p className="text-sm text-gray-500">
+            {mode === 'login' ? 'Sign in to your workspace' : 'Get started with CAD Portal'}
           </p>
         </div>
+
+        {/* Error */}
+        {error && (
+          <div className="mb-5 px-4 py-2.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
+            {error}
+          </div>
+        )}
+
+        {/* Form */}
+        <form onSubmit={submit} className="space-y-4">
+          {mode === 'register' && (
+            <div>
+              <label className="block text-[11px] font-medium uppercase tracking-wider text-gray-500 mb-1.5">Full Name</label>
+              <input placeholder="Your full name" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} required />
+            </div>
+          )}
+          <div>
+            <label className="block text-[11px] font-medium uppercase tracking-wider text-gray-500 mb-1.5">Email Address</label>
+            <input type="email" placeholder="you@example.com" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} required />
+          </div>
+          <div>
+            <label className="block text-[11px] font-medium uppercase tracking-wider text-gray-500 mb-1.5">Password</label>
+            <input type="password" placeholder="••••••••" value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} required />
+          </div>
+          <button
+            type="submit"
+            className="w-full mt-2 py-2.5 rounded-lg bg-brand-500 hover:bg-brand-400 text-gray-100 font-medium text-sm transition-all duration-200 shadow-lg shadow-brand-500/20"
+          >
+            {mode === 'login' ? 'Sign In' : 'Create Account'}
+          </button>
+        </form>
+
+        {/* Toggle */}
+        <p className="mt-6 text-center text-sm text-gray-500">
+          {mode === 'login' ? "Don't have an account? " : 'Already have an account? '}
+          <a
+            href="#"
+            className="text-gold hover:text-gold-light font-medium"
+            onClick={e => { e.preventDefault(); setMode(mode === 'login' ? 'register' : 'login'); }}
+          >
+            {mode === 'login' ? 'Register' : 'Sign in'}
+          </a>
+        </p>
       </div>
     </div>
   );

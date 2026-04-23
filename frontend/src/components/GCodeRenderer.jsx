@@ -133,18 +133,18 @@ export default function GCodeRenderer({ content }) {
 
   return (
     <div>
-      <div ref={mountRef} style={{ width: '100%', height: 520, borderRadius: 8, overflow: 'hidden', background: '#111318', cursor: 'grab' }} />
+      <div ref={mountRef} className="w-full rounded-lg overflow-hidden bg-[#111318] cursor-grab" style={{ height: 520 }} />
       {colors.length > 0 && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginTop: 10, flexWrap: 'wrap' }}>
+        <div className="flex items-center gap-4 mt-2.5 flex-wrap">
           {colors.map((c, i) => (
-            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--text-muted)' }}>
-              <div style={{ width: 10, height: 10, borderRadius: '50%', background: c, border: '1px solid #444' }} />
-              Filament {i + 1} <span style={{ color: c, fontWeight: 600 }}>{c}</span>
+            <div key={i} className="flex items-center gap-1.5 text-xs text-gray-500">
+              <div className="w-2.5 h-2.5 rounded-full border border-gray-600" style={{ background: c }} />
+              Filament {i + 1} <span className="font-medium" style={{ color: c }}>{c}</span>
             </div>
           ))}
         </div>
       )}
-      {info && <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 6 }}>{info}</p>}
+      {info && <p className="text-xs text-gray-500 mt-1.5">{info}</p>}
     </div>
   );
 }

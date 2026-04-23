@@ -61,12 +61,12 @@ function fmtGrams(g) {
 function InfoRow({ label, value, unit = '' }) {
   if (!value && value !== 0) return null;
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-      <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
+    <div className="flex flex-col gap-0.5">
+      <div className="text-[10px] font-medium uppercase tracking-wider text-gray-500">
         {label}
       </div>
-      <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>
-        {value}{unit && <span style={{ fontSize: 12, color: 'var(--text-muted)', marginLeft: 2 }}>{unit}</span>}
+      <div className="text-sm font-medium text-gray-200">
+        {value}{unit && <span className="text-xs text-gray-500 ml-0.5">{unit}</span>}
       </div>
     </div>
   );
@@ -77,10 +77,10 @@ function Section({ title, children }) {
   if (!flat.some(c => c !== null && c !== false && c !== undefined)) return null;
   return (
     <div>
-      <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--gold)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>
+      <div className="text-[11px] font-medium uppercase tracking-wider text-gold mb-2.5">
         {title}
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: '10px 20px' }}>
+      <div className="grid grid-cols-[repeat(auto-fill,minmax(130px,1fr))] gap-x-5 gap-y-2.5">
         {children}
       </div>
     </div>
@@ -96,36 +96,36 @@ export default function GCodeInfo({ content }) {
   const multiFilament = d.filamentGs.filter(v => parseFloat(v) > 0).length > 1;
 
   return (
-    <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 18 }}>
-      <div style={{ height: 1, background: 'var(--border)' }} />
+    <div className="mt-4 flex flex-col gap-4">
+      <div className="h-px bg-white/[0.06]" />
 
       {/* Material Usage */}
       {totalG > 0 && (
         <div>
-          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--gold)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>
+          <div className="text-[11px] font-medium uppercase tracking-wider text-gold mb-2.5">
             Material Usage
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: '10px 20px' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>Total</div>
-              <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--gold)' }}>
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(130px,1fr))] gap-x-5 gap-y-2.5">
+            <div className="flex flex-col gap-0.5">
+              <div className="text-[10px] font-medium uppercase tracking-wider text-gray-500">Total</div>
+              <div className="text-sm font-medium text-gold">
                 {fmtGrams(totalG)}
-                <span style={{ fontSize: 12, color: 'var(--text-muted)', marginLeft: 6 }}>{(totalMm / 1000).toFixed(2)} m</span>
+                <span className="text-xs text-gray-500 ml-1.5">{(totalMm / 1000).toFixed(2)} m</span>
               </div>
             </div>
             {multiFilament && d.filamentGs.map((g, i) => {
               if (!parseFloat(g)) return null;
               return (
-                <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                <div key={i} className="flex flex-col gap-0.5">
+                  <div className="flex items-center gap-1.5">
                     {d.filamentColors[i] && (
-                      <div style={{ width: 8, height: 8, borderRadius: '50%', background: d.filamentColors[i], border: '1px solid #aaa', flexShrink: 0 }} />
+                      <div className="w-2 h-2 rounded-full border border-gray-500 flex-shrink-0" style={{ background: d.filamentColors[i] }} />
                     )}
-                    <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
+                    <div className="text-[10px] font-medium uppercase tracking-wider text-gray-500">
                       {d.filamentTypes[i] || `Filament ${i + 1}`}
                     </div>
                   </div>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>{fmtGrams(g)}</div>
+                  <div className="text-[13px] font-medium text-gray-200">{fmtGrams(g)}</div>
                 </div>
               );
             })}

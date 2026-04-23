@@ -121,12 +121,12 @@ export default function StlViewer({ versionId }) {
   return (
     <div>
       {loading && (
-        <div style={{ height: 520, background: '#111318', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>
+        <div className="h-[520px] bg-[#111318] rounded-lg flex items-center justify-center text-gray-500 text-sm">
           Loading STL...
         </div>
       )}
-      <div ref={mountRef} style={{ width: '100%', height: loading ? 0 : 520, borderRadius: 8, overflow: 'hidden', background: '#111318', cursor: 'grab' }} />
-      {info && <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 6 }}>{info}</p>}
+      <div ref={mountRef} style={{ width: '100%', height: loading ? 0 : 520 }} className="rounded-lg overflow-hidden bg-[#111318] cursor-grab" />
+      {info && <p className="text-xs text-gray-500 mt-1.5">{info}</p>}
     </div>
   );
 }

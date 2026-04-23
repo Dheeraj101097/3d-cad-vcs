@@ -37,6 +37,7 @@ const printlogsRouter = require('./routes/printlogs');
 app.use('/api/printlogs', printlogsRouter);
 app.use('/api/stl', require('./routes/stl'));
 app.use('/api/inventory', require('./routes/inventory'));
+app.use('/api/admin', require('./routes/admin'));
 
 app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
 
