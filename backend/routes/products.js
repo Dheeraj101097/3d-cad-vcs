@@ -1,24 +1,11 @@
 const router = require('express').Router();
 const multer = require('multer');
 const path = require('path');
-const fs = require('fs');
 const Product = require('../models/Product');
 const { protect, requireActive, requireWrite, requireDelete } = require('../middleware/auth');
 
-const imageStorage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const dir = path.join(__dirname, '../uploads/product-images');
-    fs.mkdirSync(dir, { recursive: true });
-    cb(null, dir);
-  },
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname).toLowerCase();
-    cb(null, `product_${Date.now()}${ext}`);
-  }
-});
-
 const imageUpload = multer({
-  storage: imageStorage,
+  storage: multer.memoryStorage(),
   fileFilter: (req, file, cb) => {
     const allowed = ['.jpg', '.jpeg', '.png'];
     const ext = path.extname(file.originalname).toLowerCase();
@@ -37,7 +24,9 @@ router.get('/', async (req, res) => {
 router.post('/', requireWrite('products'), imageUpload.single('image'), async (req, res) => {
   try {
     const { name, description, sku } = req.body;
-    const imageUrl = req.file ? `/uploads/product-images/${req.file.filename}` : undefined;
+    const imageUrl = req.file
+      ? `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`
+      : undefined;
     const product = await Product.create({
       name, description,
       sku: sku || undefined,

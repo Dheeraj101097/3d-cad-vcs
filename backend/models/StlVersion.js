@@ -1,16 +1,17 @@
 const mongoose = require('mongoose');
 
 const stlVersionSchema = new mongoose.Schema({
-  part: { type: mongoose.Schema.Types.ObjectId, ref: 'Part', required: true },
-  version: { type: String, required: true },
+  part:          { type: mongoose.Schema.Types.ObjectId, ref: 'Part', required: true },
+  version:       { type: String, required: true },
   versionNumber: { type: Number, required: true },
-  filename: { type: String, required: true },
-  originalName: { type: String, required: true },
-  filePath: { type: String, required: true },
-  fileSize: { type: Number },
-  notes: { type: String },
-  isLatest: { type: Boolean, default: true },
-  uploadedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
+  originalName:  { type: String, required: true },
+  fileSize:      { type: Number },
+  notes:         { type: String },
+  isLatest:      { type: Boolean, default: true },
+  uploadedBy:    { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+
+  // GridFS ObjectId — file bytes live in MongoDB (cadfiles bucket)
+  gridfsId: { type: mongoose.Schema.Types.ObjectId },
 }, { timestamps: true });
 
 stlVersionSchema.index({ part: 1, versionNumber: -1 });

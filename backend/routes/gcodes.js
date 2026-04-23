@@ -1,64 +1,60 @@
 const router = require('express').Router();
 const multer = require('multer');
 const path = require('path');
-const fs = require('fs');
 const AdmZip = require('adm-zip');
 const GCodeVersion = require('../models/GCodeVersion');
 const Part = require('../models/Part');
+const { uploadBuffer, pipeToResponse, downloadToBuffer, deleteFile } = require('../utils/gridfs');
 const { protect, requireActive, requireWrite, requireDelete } = require('../middleware/auth');
 
-// Extract gcode and mesh from a Bambu Lab .3mf ZIP archive
-function extractFrom3mf(zipPath, destDir) {
-  const result = { gcodePath: null, meshPath: null };
+// All files received in memory — nothing touches disk
+const upload = multer({
+  storage: multer.memoryStorage(),
+  fileFilter: (req, file, cb) => {
+    const allowed = ['.gcode', '.gc', '.mf', '.3mf', '.nc', '.tap', '.txt'];
+    const ext = path.extname(file.originalname).toLowerCase();
+    allowed.includes(ext) ? cb(null, true) : cb(new Error('File type not allowed'));
+  },
+  limits: { fileSize: 200 * 1024 * 1024 }, // 200 MB
+});
+
+// Extract gcode buffer and mesh buffer from a .3mf zip (all in memory)
+function extractFrom3mf(fileBuffer) {
+  const result = { gcodeBuffer: null, meshBuffer: null };
   try {
-    const zip = new AdmZip(zipPath);
+    const zip = new AdmZip(fileBuffer);
     const entries = zip.getEntries();
 
-    // Extract gcode
     const gcodeEntry =
-      entries.find(e => e.entryName.match(/Metadata\/plate_\d+\.gcode$/i)) ||
-      entries.find(e => e.entryName.match(/\.gcode$/i));
-    if (gcodeEntry) {
-      const outPath = path.join(destDir, `extracted_${Date.now()}.gcode`);
-      fs.writeFileSync(outPath, gcodeEntry.getData());
-      result.gcodePath = outPath;
-    }
+      entries.find(e => /Metadata\/plate_\d+\.gcode$/i.test(e.entryName)) ||
+      entries.find(e => /\.gcode$/i.test(e.entryName));
+    if (gcodeEntry) result.gcodeBuffer = gcodeEntry.getData();
 
-    // Extract 3D mesh model (3MF spec: 3D/3dmodel.model)
     const meshEntry =
-      entries.find(e => e.entryName.match(/3D\/3dmodel\.model$/i)) ||
-      entries.find(e => e.entryName.match(/\.model$/i));
-    if (meshEntry) {
-      const outPath = path.join(destDir, `mesh_${Date.now()}.model`);
-      fs.writeFileSync(outPath, meshEntry.getData());
-      result.meshPath = outPath;
-    }
+      entries.find(e => /3D\/3dmodel\.model$/i.test(e.entryName)) ||
+      entries.find(e => /\.model$/i.test(e.entryName));
+    if (meshEntry) result.meshBuffer = meshEntry.getData();
   } catch (e) {
     console.error('3mf extraction failed:', e.message);
   }
   return result;
 }
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const dir = path.join(__dirname, '../uploads', req.params.partId);
-    fs.mkdirSync(dir, { recursive: true });
-    cb(null, dir);
-  },
-  filename: (req, file, cb) => {
-    const ts = Date.now();
-    cb(null, `${ts}-${file.originalname}`);
+// Extract embedded thumbnail from .3mf and return as base64 data URL
+function extractThumbnail(fileBuffer) {
+  try {
+    const zip = new AdmZip(fileBuffer);
+    const entries = zip.getEntries();
+    const thumb =
+      entries.find(e => /thumbnails\/.*\.(png|jpe?g)$/i.test(e.entryName)) ||
+      entries.find(e => /metadata\/plate_\d+\.(png|jpe?g)$/i.test(e.entryName)) ||
+      entries.find(e => /\.(png|jpe?g)$/i.test(e.entryName));
+    if (thumb) return `data:image/png;base64,${thumb.getData().toString('base64')}`;
+  } catch (e) {
+    console.error('Thumbnail extraction failed:', e.message);
   }
-});
-
-const upload = multer({
-  storage,
-  fileFilter: (req, file, cb) => {
-    const allowed = ['.gcode', '.gc', '.mf', '.3mf', '.nc', '.tap', '.txt'];
-    const ext = path.extname(file.originalname).toLowerCase();
-    allowed.includes(ext) ? cb(null, true) : cb(new Error('File type not allowed'));
-  }
-});
+  return null;
+}
 
 router.use(protect, requireActive);
 
@@ -72,80 +68,63 @@ router.get('/part/:partId', async (req, res) => {
   res.json(versions);
 });
 
-// Upload new version
+// Upload new version — file goes straight to GridFS
 router.post('/part/:partId', requireWrite('products'), upload.single('file'), async (req, res) => {
   try {
     const { notes } = req.body;
     const partId = req.params.partId;
+    const fileBuffer = req.file.buffer;
+    const ext = path.extname(req.file.originalname).toLowerCase().replace('.', '');
 
-    // Mark previous versions as not latest
     await GCodeVersion.updateMany({ part: partId }, { isLatest: false });
-
-    // Get next version number from highest existing versionNumber (single indexed read)
     const latest = await GCodeVersion.findOne({ part: partId }).sort({ versionNumber: -1 }).select('versionNumber').lean();
     const versionNumber = (latest?.versionNumber ?? 0) + 1;
-    const version = `v${versionNumber}.0`;
 
-    const ext = path.extname(req.file.originalname).toLowerCase().replace('.', '');
-    const uploadDir = path.join(__dirname, '../uploads', partId);
+    // Upload original file to GridFS
+    const gridfsId = await uploadBuffer(fileBuffer, req.file.originalname, req.file.mimetype || 'application/octet-stream');
 
-    let gcodePreviewPath = req.file.path;
-    let meshPath = null;
-
-    if (ext === '3mf') {
-      const extracted = extractFrom3mf(req.file.path, uploadDir);
-      if (extracted.gcodePath) gcodePreviewPath = extracted.gcodePath;
-      if (extracted.meshPath) meshPath = extracted.meshPath;
-    }
-
-    // Thumbnail extraction from 3mf
+    let gcodePreviewGridfsId = gridfsId;
+    let meshGridfsId = null;
     let thumbnailUrl = null;
+
     if (ext === '3mf') {
-      try {
-        const thumbZip = new AdmZip(req.file.path);
-        const thumbEntries = thumbZip.getEntries();
-        const thumbEntry =
-          thumbEntries.find(e => /thumbnails\/.*\.(png|jpe?g)$/i.test(e.entryName)) ||
-          thumbEntries.find(e => /metadata\/plate_\d+\.(png|jpe?g)$/i.test(e.entryName)) ||
-          thumbEntries.find(e => /\.(png|jpe?g)$/i.test(e.entryName));
-        if (thumbEntry) {
-          const thumbDir = path.join(__dirname, '../uploads/thumbnails');
-          fs.mkdirSync(thumbDir, { recursive: true });
-          const thumbFilename = `thumb_${partId}_${Date.now()}.png`;
-          const thumbPath = path.join(thumbDir, thumbFilename);
-          fs.writeFileSync(thumbPath, thumbEntry.getData());
-          thumbnailUrl = `/uploads/thumbnails/${thumbFilename}`;
-          await Part.findByIdAndUpdate(partId, { thumbnailUrl });
-        }
-      } catch (thumbErr) {
-        console.error('Thumbnail extraction failed:', thumbErr.message);
+      const { gcodeBuffer, meshBuffer } = extractFrom3mf(fileBuffer);
+      if (gcodeBuffer) {
+        gcodePreviewGridfsId = await uploadBuffer(gcodeBuffer, `preview_${Date.now()}.gcode`, 'text/plain');
+      }
+      if (meshBuffer) {
+        meshGridfsId = await uploadBuffer(meshBuffer, `mesh_${Date.now()}.model`, 'application/xml');
+      }
+      thumbnailUrl = extractThumbnail(fileBuffer);
+      if (thumbnailUrl) {
+        await Part.findByIdAndUpdate(partId, { thumbnailUrl });
       }
     }
 
     const gcode = await GCodeVersion.create({
       part: partId,
-      version,
+      version: `v${versionNumber}.0`,
       versionNumber,
-      filename: req.file.filename,
       originalName: req.file.originalname,
       fileType: ext,
-      filePath: req.file.path,
-      gcodePreviewPath,
-      meshPath,
-      thumbnailPath: thumbnailUrl,
       fileSize: req.file.size,
       notes,
       isLatest: true,
-      uploadedBy: req.user._id
+      uploadedBy: req.user._id,
+      gridfsId,
+      gcodePreviewGridfsId,
+      meshGridfsId,
+      thumbnailUrl,
     });
 
     res.status(201).json(gcode);
   } catch (e) {
+    console.error('GCode upload error:', e);
     res.status(400).json({ message: e.message });
   }
 });
 
-// Print options — all 3MF versions with nested product › part label (for print modal)
+// Print options — all 3MF versions for print modal
 router.get('/print-options', async (req, res) => {
   const versions = await GCodeVersion.find({ fileType: '3mf' })
     .select('version originalName part')
@@ -156,37 +135,53 @@ router.get('/print-options', async (req, res) => {
     _id: v._id,
     version: v.version,
     originalName: v.originalName,
-    label: `${v.part?.product?.name ?? '?'} › ${v.part?.name ?? '?'} › ${v.version} (${v.originalName})`
+    label: `${v.part?.product?.name ?? '?'} › ${v.part?.name ?? '?'} › ${v.version} (${v.originalName})`,
   })));
 });
 
-// Get raw file content (for renderer) — uses extracted gcode for .3mf files
+// Serve raw gcode text for the renderer (uses extracted preview if available)
 router.get('/:id/content', async (req, res) => {
-  const gcode = await GCodeVersion.findById(req.params.id).select('gcodePreviewPath filePath').lean();
-  if (!gcode) return res.status(404).json({ message: 'Not found' });
-  const servePath = gcode.gcodePreviewPath || gcode.filePath;
-  res.sendFile(path.resolve(servePath));
+  try {
+    const gcode = await GCodeVersion.findById(req.params.id).select('gcodePreviewGridfsId gridfsId').lean();
+    if (!gcode) return res.status(404).json({ message: 'Not found' });
+    const id = gcode.gcodePreviewGridfsId || gcode.gridfsId;
+    if (!id) return res.status(404).json({ message: 'No file stored for this version' });
+    const buffer = await downloadToBuffer(id);
+    res.type('text/plain').send(buffer.toString('utf8'));
+  } catch (e) {
+    if (!res.headersSent) res.status(404).json({ message: 'File not found in storage' });
+  }
 });
 
-// Get extracted 3MF mesh XML for 3D solid rendering
+// Serve mesh XML for 3D viewer
 router.get('/:id/mesh', async (req, res) => {
-  const gcode = await GCodeVersion.findById(req.params.id).select('meshPath').lean();
-  if (!gcode || !gcode.meshPath) return res.status(404).json({ message: 'No mesh available' });
+  const gcode = await GCodeVersion.findById(req.params.id).select('meshGridfsId').lean();
+  if (!gcode || !gcode.meshGridfsId) return res.status(404).json({ message: 'No mesh available' });
   res.setHeader('Content-Type', 'application/xml');
-  res.sendFile(path.resolve(gcode.meshPath));
+  pipeToResponse(gcode.meshGridfsId, res);
 });
 
-// Download file
+// Download — streams exact original file from GridFS
 router.get('/:id/download', async (req, res) => {
-  const gcode = await GCodeVersion.findById(req.params.id).select('filePath originalName').lean();
+  const gcode = await GCodeVersion.findById(req.params.id).select('gridfsId originalName').lean();
   if (!gcode) return res.status(404).json({ message: 'Not found' });
-  res.download(path.resolve(gcode.filePath), gcode.originalName);
+  res.setHeader('Content-Disposition', `attachment; filename="${gcode.originalName}"`);
+  res.setHeader('Content-Type', 'application/octet-stream');
+  pipeToResponse(gcode.gridfsId, res);
 });
 
+// Delete — removes GridFS files + document
 router.delete('/:id', requireDelete('products'), async (req, res) => {
-  const gcode = await GCodeVersion.findById(req.params.id).select('filePath').lean();
+  const gcode = await GCodeVersion.findById(req.params.id)
+    .select('gridfsId gcodePreviewGridfsId meshGridfsId').lean();
   if (!gcode) return res.status(404).json({ message: 'Not found' });
-  fs.unlink(gcode.filePath, () => {});
+
+  const ids = [gcode.gridfsId];
+  if (gcode.gcodePreviewGridfsId?.toString() !== gcode.gridfsId?.toString())
+    ids.push(gcode.gcodePreviewGridfsId);
+  if (gcode.meshGridfsId) ids.push(gcode.meshGridfsId);
+
+  await Promise.all(ids.map(id => deleteFile(id)));
   await GCodeVersion.deleteOne({ _id: req.params.id });
   res.json({ message: 'Deleted' });
 });

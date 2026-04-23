@@ -121,8 +121,21 @@ export default function StlViewer({ versionId }) {
   return (
     <div>
       {loading && (
-        <div className="h-[520px] bg-[#111318] rounded-lg flex items-center justify-center text-gray-500 text-sm">
-          Loading STL...
+        <div className="h-[520px] bg-[#111318] rounded-lg overflow-hidden relative">
+          {/* Animated skeleton shimmer */}
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.04] to-transparent -translate-x-full animate-[shimmer_1.6s_infinite] pointer-events-none" />
+          {/* Grid lines to suggest 3D space */}
+          <div className="absolute inset-0 flex flex-col justify-end pb-6 px-6 gap-1 opacity-20">
+            {[...Array(6)].map((_, i) => (
+              <div key={i} className="h-px bg-white/20" style={{ width: `${100 - i * 8}%`, marginLeft: `${i * 4}%` }} />
+            ))}
+          </div>
+          <div className="absolute inset-0 flex items-center justify-center flex-col gap-3">
+            <div className="w-16 h-16 rounded-full bg-white/[0.04] animate-pulse flex items-center justify-center">
+              <div className="w-8 h-8 rounded bg-white/[0.06] animate-pulse" />
+            </div>
+            <span className="text-xs text-gray-600 tracking-wide">Loading 3D model from database…</span>
+          </div>
         </div>
       )}
       <div ref={mountRef} style={{ width: '100%', height: loading ? 0 : 520 }} className="rounded-lg overflow-hidden bg-[#111318] cursor-grab" />

@@ -153,8 +153,24 @@ export default function GCodeTab({ partId, partName }) {
               </div>
 
               {loadingContent
-                ? <div className="h-[520px] bg-[#111318] rounded-lg flex items-center justify-center text-gray-500 text-sm">Loading preview...</div>
-                : <Suspense fallback={<div className="h-[520px] bg-[#111318] rounded-lg" />}>
+                ? (
+                  <div className="h-[520px] bg-[#111318] rounded-lg overflow-hidden relative">
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.04] to-transparent -translate-x-full animate-[shimmer_1.6s_infinite] pointer-events-none" />
+                    {/* Fake toolpath lines */}
+                    <div className="absolute inset-0 flex flex-col justify-center px-10 gap-2 opacity-15">
+                      {[80, 65, 90, 50, 75, 40, 85, 60].map((w, i) => (
+                        <div key={i} className="h-px bg-white/30 rounded-full animate-pulse" style={{ width: `${w}%`, animationDelay: `${i * 0.1}s` }} />
+                      ))}
+                    </div>
+                    <div className="absolute inset-0 flex items-center justify-center flex-col gap-3">
+                      <div className="w-16 h-16 rounded-full bg-white/[0.04] animate-pulse flex items-center justify-center">
+                        <div className="w-6 h-6 border-2 border-gold/30 border-t-gold/80 rounded-full animate-spin" />
+                      </div>
+                      <span className="text-xs text-gray-600 tracking-wide">Loading G-Code from database…</span>
+                    </div>
+                  </div>
+                )
+                : <Suspense fallback={<div className="h-[520px] bg-[#111318] rounded-lg overflow-hidden relative"><div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.04] to-transparent -translate-x-full animate-[shimmer_1.6s_infinite]" /></div>}>
                     <GCodeRenderer content={gcodeContent} />
                   </Suspense>
               }

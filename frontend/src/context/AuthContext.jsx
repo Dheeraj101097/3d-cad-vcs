@@ -3,6 +3,12 @@ import axios from 'axios';
 
 const AuthContext = createContext();
 
+// In production, VITE_API_URL = https://your-backend.onrender.com
+// In dev, leave it unset — Vite proxy forwards /api to localhost:5000
+if (import.meta.env.VITE_API_URL) {
+  axios.defaults.baseURL = import.meta.env.VITE_API_URL;
+}
+
 axios.interceptors.request.use((config) => {
   const token = localStorage.getItem('cad_token');
   if (token) config.headers.Authorization = `Bearer ${token}`;

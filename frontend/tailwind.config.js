@@ -39,6 +39,7 @@ export default {
         'fade-in': 'fadeIn 0.25s ease-out',
         'spin-slow': 'spin 0.7s linear infinite',
         'slide-up': 'slideUp 0.3s ease-out',
+        'shimmer': 'shimmer 1.6s infinite',
       },
       keyframes: {
         fadeIn: {
@@ -48,6 +49,10 @@ export default {
         slideUp: {
           '0%':   { opacity: '0', transform: 'translateY(12px)' },
           '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
+        shimmer: {
+          '0%':   { transform: 'translateX(-100%)' },
+          '100%': { transform: 'translateX(200%)' },
         },
       },
       backdropBlur: {
