@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
 import PageLoading from '../components/PageLoading';
 import { usePermission } from '../context/AuthContext';
+import { useConfirm } from '../components/ConfirmModal';
 import {
   getPrinters, createPrinter, updatePrinter, deletePrinter,
   getPrinterStatus, getPrinterSdCard, deleteSdFile,
@@ -41,6 +42,7 @@ function StepDot({ active, done, label }) {
 
 function PrinterCard({ printer, onDelete, onPrint, onEdit }) {
   const [showSd, setShowSd] = useState(false);
+  const { confirmModal: sdConfirmModal, ask: askSd } = useConfirm();
 
   // Status fetched per-card (kept as local query with manual refetch)
   const { data: status, isFetching: loadingStatus, error: statusErr, refetch: refetchStatus } = useQuery({
@@ -69,7 +71,7 @@ function PrinterCard({ printer, onDelete, onPrint, onEdit }) {
   const toggleSd = () => setShowSd(s => !s);
 
   return (
-    <div className="glass rounded-xl p-5 flex flex-col gap-3.5">
+    <div className="glass rounded-xl p-5 flex flex-col gap-3.5">{sdConfirmModal}
       <div className="flex justify-between items-start">
         <div>
           <div className="font-semibold text-base text-gray-200">{printer.name}</div>
@@ -140,11 +142,8 @@ function PrinterCard({ printer, onDelete, onPrint, onEdit }) {
                 <button
                   className="text-[10px] px-1.5 py-0.5 rounded bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 transition-all flex-shrink-0"
                   disabled={deleteSdMutation.isPending}
-                  onClick={() => {
-                    if (!confirm(`Delete "${f.name}" from printer SD card?`)) return;
-                    deleteSdMutation.mutate({ printerId: printer._id, filename: f.name });
-                  }}
-                >✕</button>
+                  onClick={() => askSd({ title: 'Delete from SD card?', message: `"${f.name}" will be removed from the printer's SD card.` }).then(ok => { if (ok) deleteSdMutation.mutate({ printerId: printer._id, filename: f.name }); })}
+                ><svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg></button>
               </div>
             ))}
           </div>
@@ -157,6 +156,7 @@ function PrinterCard({ printer, onDelete, onPrint, onEdit }) {
 export default function Printers() {
   const qc = useQueryClient();
   const { canWrite, canDelete } = usePermission('printers');
+  const { confirmModal, ask } = useConfirm();
   const [showAdd, setShowAdd] = useState(false);
   const [showPrint, setShowPrint] = useState(false);
   const [editPrinter, setEditPrinter] = useState(null);
@@ -260,7 +260,7 @@ export default function Printers() {
   };
 
   return (
-    <>
+    <>{confirmModal}
       {/* Header */}
       <div className="flex items-center justify-between mb-7">
         <div>
@@ -284,7 +284,7 @@ export default function Printers() {
             <PrinterCard
               key={p._id}
               printer={p}
-              onDelete={canDelete ? (id) => { if (!confirm('Remove this printer?')) return; deleteMutation.mutate(id); } : undefined}
+              onDelete={canDelete ? (id) => ask({ title: 'Remove printer?', message: 'This will remove the printer from your workspace.' }).then(ok => { if (ok) deleteMutation.mutate(id); }) : undefined}
               onPrint={canWrite ? openPrint : undefined}
               onEdit={canWrite ? (printer) => setEditPrinter({ ...printer }) : undefined}
             />
@@ -295,8 +295,8 @@ export default function Printers() {
       {/* Add Printer Modal */}
       {showAdd && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50" onClick={() => setShowAdd(false)}>
-          <div className="glass-strong rounded-2xl p-7 w-[460px] max-w-[95vw] shadow-2xl animate-slide-up" onClick={e => e.stopPropagation()}>
-            <h2 className="text-lg font-semibold text-gray-100 mb-5">Add Bambu Lab Printer</h2>
+          <div className="modal-surface p-7 w-[460px] max-w-[95vw]" onClick={e => e.stopPropagation()}>
+            <h2 className="text-lg font-semibold text-gray-800 mb-5">Add Bambu Lab Printer</h2>
             <form onSubmit={(e) => { e.preventDefault(); addMutation.mutate(form); }} className="space-y-4">
               <div>
                 <label className="block text-[11px] font-medium uppercase tracking-wider text-gray-500 mb-1.5">Printer Name</label>
@@ -334,7 +334,7 @@ export default function Printers() {
                 </p>
               </div>
               <div className="flex gap-2 justify-end pt-1">
-                <button type="button" className="px-4 py-2 rounded-lg bg-white/[0.04] border border-white/[0.08] text-gray-400 hover:bg-white/[0.08] text-sm transition-all" onClick={() => setShowAdd(false)}>Cancel</button>
+                <button type="button" className="px-4 py-2 rounded-lg bg-gray-100 border border-gray-200 text-gray-600 hover:bg-gray-200 text-sm transition-all" onClick={() => setShowAdd(false)}>Cancel</button>
                 <button type="submit" className="px-4 py-2 rounded-lg bg-brand-500 hover:bg-brand-400 text-gray-100 text-sm font-medium transition-all" disabled={addMutation.isPending}>
                   {addMutation.isPending ? 'Adding...' : 'Add Printer'}
                 </button>
@@ -347,8 +347,8 @@ export default function Printers() {
       {/* Print Modal */}
       {showPrint && selectedPrinter && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50" onClick={() => setShowPrint(false)}>
-          <div className="glass-strong rounded-2xl p-7 w-[460px] max-w-[95vw] shadow-2xl animate-slide-up" onClick={e => e.stopPropagation()}>
-            <h2 className="text-lg font-semibold text-gray-100 mb-5">Send to {selectedPrinter.name}</h2>
+          <div className="modal-surface p-7 w-[460px] max-w-[95vw]" onClick={e => e.stopPropagation()}>
+            <h2 className="text-lg font-semibold text-gray-800 mb-5">Send to {selectedPrinter.name}</h2>
             <form onSubmit={sendFile} className="space-y-4">
               <div>
                 <label className="block text-[11px] font-medium uppercase tracking-wider text-gray-500 mb-1.5">Select File (3MF only)</label>
@@ -403,7 +403,7 @@ export default function Printers() {
               </div>
 
               <div className="flex gap-2 justify-end pt-1">
-                <button type="button" className="px-4 py-2 rounded-lg bg-white/[0.04] border border-white/[0.08] text-gray-400 hover:bg-white/[0.08] text-sm transition-all" onClick={() => setShowPrint(false)}>Close</button>
+                <button type="button" className="px-4 py-2 rounded-lg bg-gray-100 border border-gray-200 text-gray-600 hover:bg-gray-200 text-sm transition-all" onClick={() => setShowPrint(false)}>Close</button>
 
                 {(printStep === 'idle' || printStep === 'error') && (
                   <button type="submit" className="px-4 py-2 rounded-lg bg-brand-500 hover:bg-brand-400 text-gray-100 text-sm font-medium transition-all" disabled={!printForm.versionId || uploadMutation.isPending}>
@@ -416,7 +416,7 @@ export default function Printers() {
                 )}
                 {printStep === 'starting' && <button className="px-4 py-2 rounded-lg bg-brand-500 text-gray-100 text-sm" disabled>⟳ Starting...</button>}
                 {printStep === 'done' && (
-                  <button type="button" className="px-4 py-2 rounded-lg bg-white/[0.04] border border-white/[0.08] text-gray-400 hover:bg-white/[0.08] text-sm transition-all" onClick={() => { setPrintStep('idle'); setUploadedFileName(''); setPrintResult(''); }}>
+                  <button type="button" className="px-4 py-2 rounded-lg bg-gray-100 border border-gray-200 text-gray-600 hover:bg-gray-200 text-sm transition-all" onClick={() => { setPrintStep('idle'); setUploadedFileName(''); setPrintResult(''); }}>
                     Send Another
                   </button>
                 )}
@@ -429,8 +429,8 @@ export default function Printers() {
       {/* Edit Printer Modal */}
       {editPrinter && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50" onClick={() => setEditPrinter(null)}>
-          <div className="glass-strong rounded-2xl p-7 w-[460px] max-w-[95vw] shadow-2xl animate-slide-up" onClick={e => e.stopPropagation()}>
-            <h2 className="text-lg font-semibold text-gray-100 mb-5">Edit Printer</h2>
+          <div className="modal-surface p-7 w-[460px] max-w-[95vw]" onClick={e => e.stopPropagation()}>
+            <h2 className="text-lg font-semibold text-gray-800 mb-5">Edit Printer</h2>
             <form onSubmit={(e) => { e.preventDefault(); editMutation.mutate({ id: editPrinter._id, data: { name: editPrinter.name, ip: editPrinter.ip, serial: editPrinter.serial, accessCode: editPrinter.accessCode, model: editPrinter.model, agentToken: editPrinter.agentToken } }); }} className="space-y-4">
               <div>
                 <label className="block text-[11px] font-medium uppercase tracking-wider text-gray-500 mb-1.5">Printer Name</label>
@@ -459,7 +459,7 @@ export default function Printers() {
                 <input value={editPrinter.agentToken || ''} onChange={e => setEditPrinter({ ...editPrinter, agentToken: e.target.value })} />
               </div>
               <div className="flex gap-2 justify-end pt-1">
-                <button type="button" className="px-4 py-2 rounded-lg bg-white/[0.04] border border-white/[0.08] text-gray-400 hover:bg-white/[0.08] text-sm transition-all" onClick={() => setEditPrinter(null)}>Cancel</button>
+                <button type="button" className="px-4 py-2 rounded-lg bg-gray-100 border border-gray-200 text-gray-600 hover:bg-gray-200 text-sm transition-all" onClick={() => setEditPrinter(null)}>Cancel</button>
                 <button type="submit" className="px-4 py-2 rounded-lg bg-brand-500 hover:bg-brand-400 text-gray-100 text-sm font-medium transition-all" disabled={editMutation.isPending}>
                   {editMutation.isPending ? 'Saving...' : 'Save Changes'}
                 </button>

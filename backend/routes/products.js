@@ -45,9 +45,17 @@ router.get('/:id', async (req, res) => {
   res.json(product);
 });
 
-router.put('/:id', requireWrite('products'), async (req, res) => {
-  const product = await Product.findByIdAndUpdate(req.params.id, req.body, { new: true, lean: true });
-  res.json(product);
+router.put('/:id', requireWrite('products'), imageUpload.single('image'), async (req, res) => {
+  try {
+    const update = { ...req.body };
+    if (req.file) {
+      update.imageUrl = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`;
+    }
+    const product = await Product.findByIdAndUpdate(req.params.id, update, { new: true, lean: true });
+    res.json(product);
+  } catch (e) {
+    res.status(400).json({ message: e.message });
+  }
 });
 
 router.delete('/:id', requireDelete('products'), async (req, res) => {

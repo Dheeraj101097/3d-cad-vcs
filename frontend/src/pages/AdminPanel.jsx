@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
 import PageLoading from '../components/PageLoading';
 import { RESOURCES, bitsToString, bitsBadgeClass } from '../config/resources';
+import { useConfirm } from '../components/ConfirmModal';
 
 const fetchUsers = () => axios.get('/api/admin/users').then(r => r.data);
 
@@ -15,6 +16,7 @@ const ROLE_BADGE = {
 
 export default function AdminPanel() {
   const qc = useQueryClient();
+  const { confirmModal, ask } = useConfirm();
   const [confirm, setConfirm] = useState(null); // { id, role, name, action }
 
   const { data: users = [], isLoading } = useQuery({
@@ -114,7 +116,7 @@ export default function AdminPanel() {
   );
 
   return (
-    <>
+    <>{confirmModal}
       <div className="flex items-center justify-between mb-7 animate-fade-in">
         <div>
           <h1 className="text-2xl font-semibold text-gray-100 tracking-tight">User Management</h1>
@@ -144,7 +146,7 @@ export default function AdminPanel() {
               <div className="flex gap-1.5 shrink-0">
                 <BtnPrimary onClick={() => roleMutation.mutate({ id: u._id, role: 'active' })} disabled={roleMutation.isPending}>✓ Approve</BtnPrimary>
                 <BtnDanger onClick={() => setConfirm({ id: u._id, role: 'revoked', name: u.name })}>Reject</BtnDanger>
-                <BtnDanger onClick={() => { if (window.confirm(`Delete ${u.name}'s account permanently?`)) deleteMutation.mutate(u._id); }}>✕</BtnDanger>
+                <BtnDanger onClick={() => { ask({ title: 'Delete account?', message: `This will permanently delete ${u.name}'s account. This cannot be undone.`, confirmLabel: 'Delete' }).then(ok => { if (ok) deleteMutation.mutate(u._id); }); }}><svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg></BtnDanger>
               </div>
             </div>
           )}
@@ -161,7 +163,7 @@ export default function AdminPanel() {
                 <UserInfo u={u} />
                 <div className="flex gap-1.5 shrink-0">
                   <BtnDanger onClick={() => setConfirm({ id: u._id, role: 'revoked', name: u.name })}>Revoke</BtnDanger>
-                  <BtnDanger onClick={() => { if (window.confirm(`Delete ${u.name}'s account permanently?`)) deleteMutation.mutate(u._id); }}>✕</BtnDanger>
+                  <BtnDanger onClick={() => { ask({ title: 'Delete account?', message: `This will permanently delete ${u.name}'s account. This cannot be undone.`, confirmLabel: 'Delete' }).then(ok => { if (ok) deleteMutation.mutate(u._id); }); }}><svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg></BtnDanger>
                 </div>
               </div>
               <PermMatrix u={u} />
@@ -192,7 +194,7 @@ export default function AdminPanel() {
               <UserInfo u={u} />
               <div className="flex gap-1.5 shrink-0">
                 <BtnGhost onClick={() => roleMutation.mutate({ id: u._id, role: 'active' })}>Restore</BtnGhost>
-                <BtnDanger onClick={() => { if (window.confirm(`Delete ${u.name}'s account permanently?`)) deleteMutation.mutate(u._id); }}>✕</BtnDanger>
+                <BtnDanger onClick={() => { ask({ title: 'Delete account?', message: `This will permanently delete ${u.name}'s account. This cannot be undone.`, confirmLabel: 'Delete' }).then(ok => { if (ok) deleteMutation.mutate(u._id); }); }}><svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg></BtnDanger>
               </div>
             </div>
           )}
@@ -201,15 +203,15 @@ export default function AdminPanel() {
 
       {confirm && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50" onClick={() => setConfirm(null)}>
-          <div className="glass-strong rounded-2xl p-7 w-[460px] max-w-[95vw] shadow-2xl" onClick={e => e.stopPropagation()}>
-            <h2 className="text-lg font-semibold text-gray-100 mb-4">Confirm Action</h2>
-            <p className="text-sm text-gray-400 mb-6">
+          <div className="modal-surface p-7 w-[460px] max-w-[95vw]" onClick={e => e.stopPropagation()}>
+            <h2 className="text-lg font-semibold text-gray-800 mb-4">Confirm Action</h2>
+            <p className="text-sm text-gray-500 mb-6">
               {confirm.role === 'revoked'
                 ? `This will block ${confirm.name} from accessing the workspace immediately.`
                 : `Restore ${confirm.name}'s access?`}
             </p>
             <div className="flex gap-2 justify-end">
-              <button className="px-4 py-2 rounded-lg bg-white/[0.04] border border-white/[0.08] text-gray-400 hover:bg-white/[0.08] text-sm transition-all" onClick={() => setConfirm(null)}>Cancel</button>
+              <button className="px-4 py-2 rounded-lg bg-gray-100 border border-gray-200 text-gray-600 hover:bg-gray-200 text-sm transition-all" onClick={() => setConfirm(null)}>Cancel</button>
               <button className="px-4 py-2 rounded-lg bg-red-500/80 hover:bg-red-500 text-gray-100 text-sm font-medium transition-all" onClick={() => roleMutation.mutate({ id: confirm.id, role: confirm.role })} disabled={roleMutation.isPending}>
                 {roleMutation.isPending ? 'Applying...' : 'Confirm'}
               </button>

@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getGcodes, getGcodeContent, uploadGcode, deleteGcode, downloadVersion } from '../api';
 import VersionList from './VersionList';
 import { usePermission } from '../context/AuthContext';
+import { useConfirm } from './ConfirmModal';
 
 const GCodeRenderer = lazy(() => import('./GCodeRenderer'));
 const GCodeInfo = lazy(() => import('./GCodeInfo'));
@@ -23,6 +24,7 @@ function NoteBox({ note }) {
 export default function GCodeTab({ partId, partName }) {
   const qc = useQueryClient();
   const { canWrite, canDelete } = usePermission('products');
+  const { confirmModal, ask } = useConfirm();
   const [searchParams, setSearchParams] = useSearchParams();
   const urlVersionId = searchParams.get('gv');
 
@@ -113,13 +115,13 @@ export default function GCodeTab({ partId, partName }) {
     uploadMutation.mutate({ partId, fd });
   };
 
-  const handleDelete = (id) => {
-    if (!confirm('Delete this version?')) return;
-    deleteMutation.mutate(id);
+  const handleDelete = async (id) => {
+    const ok = await ask({ title: 'Delete version?', message: 'This will permanently delete this G-Code version from the database.' });
+    if (ok) deleteMutation.mutate(id);
   };
 
   return (
-    <>
+    <>{confirmModal}
       <div className="grid grid-cols-[300px_1fr] gap-5 items-start">
         <VersionList
           title="G-Code Versions"
@@ -192,8 +194,8 @@ export default function GCodeTab({ partId, partName }) {
       {/* Upload Modal */}
       {showUpload && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50" onClick={() => setShowUpload(false)}>
-          <div className="glass-strong rounded-2xl p-7 w-[460px] max-w-[95vw] shadow-2xl animate-slide-up" onClick={e => e.stopPropagation()}>
-            <h2 className="text-lg font-semibold text-gray-100 mb-5">Upload G-Code / 3MF Version</h2>
+          <div className="modal-surface p-7 w-[460px] max-w-[95vw]" onClick={e => e.stopPropagation()}>
+            <h2 className="text-lg font-semibold text-gray-800 mb-5">Upload G-Code / 3MF Version</h2>
             <form onSubmit={handleUpload} className="space-y-4">
               <div>
                 <label className="block text-[11px] font-medium uppercase tracking-wider text-gray-500 mb-1.5">Part Name</label>
@@ -225,7 +227,7 @@ export default function GCodeTab({ partId, partName }) {
                 <textarea rows={2} value={notes} onChange={e => setNotes(e.target.value)} placeholder="What changed in this version?" />
               </div>
               <div className="flex gap-2 justify-end pt-1">
-                <button type="button" className="px-4 py-2 rounded-lg bg-white/[0.04] border border-white/[0.08] text-gray-400 hover:bg-white/[0.08] text-sm transition-all" onClick={() => setShowUpload(false)}>Cancel</button>
+                <button type="button" className="px-4 py-2 rounded-lg bg-gray-100 border border-gray-200 text-gray-600 hover:bg-gray-200 text-sm transition-all" onClick={() => setShowUpload(false)}>Cancel</button>
                 <button type="submit" className="px-4 py-2 rounded-lg bg-brand-500 hover:bg-brand-400 text-gray-100 text-sm font-medium transition-all" disabled={uploadMutation.isPending}>
                   {uploadMutation.isPending ? 'Uploading...' : 'Upload'}
                 </button>

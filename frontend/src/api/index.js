@@ -3,6 +3,7 @@ import axios from 'axios';
 // ── Products ──────────────────────────────────────────────────────────
 export const getProducts   = () => axios.get('/api/products').then(r => r.data);
 export const createProduct = (data) => axios.post('/api/products', data).then(r => r.data);
+export const updateProduct = ({ id, data }) => axios.put(`/api/products/${id}`, data).then(r => r.data);
 export const deleteProduct = (id)   => axios.delete(`/api/products/${id}`).then(r => r.data);
 
 // ── Parts ─────────────────────────────────────────────────────────────
@@ -10,6 +11,7 @@ export const getProduct = (id)          => axios.get(`/api/products/${id}`).then
 export const getParts   = (productId)   => axios.get(`/api/parts/product/${productId}`).then(r => r.data);
 export const getPart    = (id)          => axios.get(`/api/parts/${id}`).then(r => r.data);
 export const createPart = (data)        => axios.post('/api/parts', data).then(r => r.data);
+export const updatePart = ({ id, data }) => axios.put(`/api/parts/${id}`, data).then(r => r.data);
 export const deletePart = (id)          => axios.delete(`/api/parts/${id}`).then(r => r.data);
 
 // ── G-Code Versions ───────────────────────────────────────────────────
