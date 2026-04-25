@@ -80,21 +80,11 @@ router.post('/part/:partId', requireWrite('products'), upload.single('file'), as
     const latest = await GCodeVersion.findOne({ part: partId }).sort({ versionNumber: -1 }).select('versionNumber').lean();
     const versionNumber = (latest?.versionNumber ?? 0) + 1;
 
-    // Upload original file to GridFS
+    // Upload only the original file — no extracted copies stored
     const gridfsId = await uploadBuffer(fileBuffer, req.file.originalname, req.file.mimetype || 'application/octet-stream');
 
-    let gcodePreviewGridfsId = gridfsId;
-    let meshGridfsId = null;
     let thumbnailUrl = null;
-
     if (ext === '3mf') {
-      const { gcodeBuffer, meshBuffer } = extractFrom3mf(fileBuffer);
-      if (gcodeBuffer) {
-        gcodePreviewGridfsId = await uploadBuffer(gcodeBuffer, `preview_${Date.now()}.gcode`, 'text/plain');
-      }
-      if (meshBuffer) {
-        meshGridfsId = await uploadBuffer(meshBuffer, `mesh_${Date.now()}.model`, 'application/xml');
-      }
       thumbnailUrl = extractThumbnail(fileBuffer);
       if (thumbnailUrl) {
         await Part.findByIdAndUpdate(partId, { thumbnailUrl });
@@ -112,8 +102,7 @@ router.post('/part/:partId', requireWrite('products'), upload.single('file'), as
       isLatest: true,
       uploadedBy: req.user._id,
       gridfsId,
-      gcodePreviewGridfsId,
-      meshGridfsId,
+      // gcodePreviewGridfsId and meshGridfsId intentionally not set — extracted on-the-fly
       thumbnailUrl,
     });
 
@@ -139,26 +128,66 @@ router.get('/print-options', async (req, res) => {
   })));
 });
 
-// Serve raw gcode text for the renderer (uses extracted preview if available)
+// Serve raw gcode text for the renderer
+// New docs: extract on-the-fly from original .3mf
+// Old docs: fall back to stored gcodePreviewGridfsId if present
 router.get('/:id/content', async (req, res) => {
   try {
-    const gcode = await GCodeVersion.findById(req.params.id).select('gcodePreviewGridfsId gridfsId').lean();
+    const gcode = await GCodeVersion.findById(req.params.id)
+      .select('gcodePreviewGridfsId gridfsId fileType').lean();
     if (!gcode) return res.status(404).json({ message: 'Not found' });
-    const id = gcode.gcodePreviewGridfsId || gcode.gridfsId;
-    if (!id) return res.status(404).json({ message: 'No file stored for this version' });
-    const buffer = await downloadToBuffer(id);
-    res.type('text/plain').send(buffer.toString('utf8'));
+
+    // Old doc with pre-extracted gcode stored separately — serve directly
+    if (gcode.gcodePreviewGridfsId &&
+        gcode.gcodePreviewGridfsId.toString() !== gcode.gridfsId?.toString()) {
+      const buffer = await downloadToBuffer(gcode.gcodePreviewGridfsId);
+      return res.type('text/plain').send(buffer.toString('utf8'));
+    }
+
+    if (!gcode.gridfsId) return res.status(404).json({ message: 'No file stored for this version' });
+    const fileBuffer = await downloadToBuffer(gcode.gridfsId);
+
+    // .3mf — extract gcode from zip in memory
+    if (gcode.fileType === '3mf') {
+      const { gcodeBuffer } = extractFrom3mf(fileBuffer);
+      if (!gcodeBuffer) return res.status(404).json({ message: 'No gcode found inside .3mf' });
+      return res.type('text/plain').send(gcodeBuffer.toString('utf8'));
+    }
+
+    // Plain gcode file — serve as-is
+    res.type('text/plain').send(fileBuffer.toString('utf8'));
   } catch (e) {
     if (!res.headersSent) res.status(404).json({ message: 'File not found in storage' });
   }
 });
 
 // Serve mesh XML for 3D viewer
+// New docs: extract on-the-fly from original .3mf
+// Old docs: fall back to stored meshGridfsId if present
 router.get('/:id/mesh', async (req, res) => {
-  const gcode = await GCodeVersion.findById(req.params.id).select('meshGridfsId').lean();
-  if (!gcode || !gcode.meshGridfsId) return res.status(404).json({ message: 'No mesh available' });
-  res.setHeader('Content-Type', 'application/xml');
-  pipeToResponse(gcode.meshGridfsId, res);
+  try {
+    const gcode = await GCodeVersion.findById(req.params.id)
+      .select('meshGridfsId gridfsId fileType').lean();
+    if (!gcode) return res.status(404).json({ message: 'Not found' });
+
+    // Old doc with pre-extracted mesh stored separately — serve directly
+    if (gcode.meshGridfsId) {
+      res.setHeader('Content-Type', 'application/xml');
+      return pipeToResponse(gcode.meshGridfsId, res);
+    }
+
+    // New doc — extract mesh from .3mf on-the-fly
+    if (gcode.fileType !== '3mf' || !gcode.gridfsId)
+      return res.status(404).json({ message: 'No mesh available' });
+
+    const fileBuffer = await downloadToBuffer(gcode.gridfsId);
+    const { meshBuffer } = extractFrom3mf(fileBuffer);
+    if (!meshBuffer) return res.status(404).json({ message: 'No mesh found inside .3mf' });
+    res.setHeader('Content-Type', 'application/xml');
+    res.send(meshBuffer);
+  } catch (e) {
+    if (!res.headersSent) res.status(500).json({ message: 'Mesh extraction failed' });
+  }
 });
 
 // Download — streams exact original file from GridFS
@@ -171,17 +200,18 @@ router.get('/:id/download', async (req, res) => {
 });
 
 // Delete — removes GridFS files + document
+// Handles both new docs (gridfsId only) and old docs (may have extra stored IDs)
 router.delete('/:id', requireDelete('products'), async (req, res) => {
   const gcode = await GCodeVersion.findById(req.params.id)
     .select('gridfsId gcodePreviewGridfsId meshGridfsId').lean();
   if (!gcode) return res.status(404).json({ message: 'Not found' });
 
-  const ids = [gcode.gridfsId];
-  if (gcode.gcodePreviewGridfsId?.toString() !== gcode.gridfsId?.toString())
-    ids.push(gcode.gcodePreviewGridfsId);
-  if (gcode.meshGridfsId) ids.push(gcode.meshGridfsId);
+  const ids = new Set();
+  if (gcode.gridfsId) ids.add(gcode.gridfsId.toString());
+  if (gcode.gcodePreviewGridfsId) ids.add(gcode.gcodePreviewGridfsId.toString());
+  if (gcode.meshGridfsId) ids.add(gcode.meshGridfsId.toString());
 
-  await Promise.all(ids.map(id => deleteFile(id)));
+  await Promise.all([...ids].map(id => deleteFile(id)));
   await GCodeVersion.deleteOne({ _id: req.params.id });
   res.json({ message: 'Deleted' });
 });
