@@ -68,4 +68,17 @@
   .spinner {
     @apply w-6 h-6 rounded-full border-[2.5px] border-brand-500/30 border-t-gold animate-spin-slow;
   }
+
+  /* Light cream modal — overrides dark input styles inside */
+  .modal-surface {
+    @apply bg-surface rounded-2xl shadow-2xl animate-slide-up;
+  }
+  .modal-surface input,
+  .modal-surface textarea,
+  .modal-surface select {
+    @apply bg-white border-gray-200 text-gray-800 placeholder:text-gray-400 focus:border-brand-500/60 focus:ring-brand-500/10;
+  }
+  .modal-surface label {
+    @apply text-gray-500;
+  }
 }

@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import PageLoading from '../components/PageLoading';
 import { usePermission } from '../context/AuthContext';
+import { useConfirm } from '../components/ConfirmModal';
 import {
   getInventoryGroups, createInventoryGroup, updateInventoryGroup, deleteInventoryGroup,
   getInventoryComponents, createInventoryComponent, updateInventoryComponent, deleteInventoryComponent,
@@ -35,15 +36,15 @@ function TypeManagerModal({ types, onClose }) {
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50" onClick={onClose}>
-      <div className="glass-strong rounded-2xl p-7 w-[480px] max-w-[95vw] shadow-2xl animate-slide-up" onClick={e => e.stopPropagation()}>
-        <h2 className="text-lg font-semibold text-gray-100 mb-5">Manage Types</h2>
+      <div className="modal-surface p-7 w-[480px] max-w-[95vw]" onClick={e => e.stopPropagation()}>
+        <h2 className="text-lg font-semibold text-gray-800 mb-5">Manage Types</h2>
         <div className="mb-5 flex flex-col gap-2">
           {types.map(t => (
             <div key={t._id} className="flex items-center gap-3 px-3 py-2 bg-white/[0.03] rounded-lg">
               <span className="text-lg">{t.icon}</span>
               <span className="flex-1 font-medium text-sm text-gray-200">{t.name}</span>
               <div className="w-3.5 h-3.5 rounded-full border border-gray-600" style={{ background: t.color }} />
-              <button className="text-[11px] px-2 py-0.5 rounded bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 transition-all" onClick={() => deleteMutation.mutate(t._id)}>✕</button>
+              <button className="text-[11px] px-2 py-0.5 rounded bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 transition-all" onClick={() => deleteMutation.mutate(t._id)}><svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg></button>
             </div>
           ))}
           {types.length === 0 && <p className="text-sm text-gray-500">No types yet.</p>}
@@ -69,7 +70,7 @@ function TypeManagerModal({ types, onClose }) {
               </div>
             </div>
             <div className="flex gap-2 justify-end mt-3">
-              <button type="button" className="px-4 py-2 rounded-lg bg-white/[0.04] border border-white/[0.08] text-gray-400 hover:bg-white/[0.08] text-sm transition-all" onClick={onClose}>Done</button>
+              <button type="button" className="px-4 py-2 rounded-lg bg-gray-100 border border-gray-200 text-gray-600 hover:bg-gray-200 text-sm transition-all" onClick={onClose}>Done</button>
               <button type="submit" className="px-4 py-2 rounded-lg bg-brand-500 hover:bg-brand-400 text-gray-100 text-sm font-medium transition-all" disabled={createMutation.isPending}>Add Type</button>
             </div>
           </form>
@@ -162,7 +163,7 @@ function ComponentRow({ comp, onEdit, onAdjust, onDelete, onAck }) {
       <div className="flex gap-1">
         {onAdjust && <button className="text-[11px] px-2 py-0.5 rounded-md bg-white/[0.04] border border-white/[0.08] text-gray-400 hover:bg-white/[0.08] transition-all" onClick={() => onAdjust(comp)} title="Adjust stock">±</button>}
         {onEdit && <button className="text-[11px] px-2 py-0.5 rounded-md bg-white/[0.04] border border-white/[0.08] text-gray-400 hover:bg-white/[0.08] transition-all" onClick={() => onEdit(comp)}>Edit</button>}
-        {onDelete && <button className="text-[11px] px-2 py-0.5 rounded bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 transition-all" onClick={() => onDelete(comp._id)}>✕</button>}
+        {onDelete && <button className="text-[11px] px-2 py-0.5 rounded bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 transition-all" onClick={() => onDelete(comp._id)}><svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg></button>}
       </div>
     </div>
   );
@@ -204,7 +205,7 @@ function TypeSection({ type, groups, components, activeGroup, isTypeActive, type
               {onEditGroup && <button className="text-[10px] px-1 py-0.5 rounded bg-white/[0.04] text-gray-500 hover:bg-white/[0.08] transition-all"
                 onClick={e => { e.stopPropagation(); onEditGroup(g); }}>✎</button>}
               {onDeleteGroup && <button className="text-[10px] px-1 py-0.5 rounded bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-all"
-                onClick={e => { e.stopPropagation(); onDeleteGroup(g._id); }}>✕</button>}
+                onClick={e => { e.stopPropagation(); onDeleteGroup(g._id); }}><svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg></button>}
             </div>
           </div>
         );
@@ -222,6 +223,7 @@ function TypeSection({ type, groups, components, activeGroup, isTypeActive, type
 export default function Inventory() {
   const qc = useQueryClient();
   const { canWrite, canDelete } = usePermission('inventory');
+  const { confirmModal, ask } = useConfirm();
 
   // URL-based navigation state — survives page refresh and browser back/forward
   const [searchParams, setSearchParams] = useSearchParams();
@@ -369,14 +371,14 @@ export default function Inventory() {
     setShowCompModal(true);
   };
 
-  const deleteGroup = (id) => {
-    if (!confirm('Delete this group and all its components?')) return;
-    deleteGroupMutation.mutate(id);
+  const deleteGroup = async (id) => {
+    const ok = await ask({ title: 'Delete group?', message: 'This will permanently delete the group and all its components.' });
+    if (ok) deleteGroupMutation.mutate(id);
   };
 
-  const deleteComp = (id) => {
-    if (!confirm('Delete this component?')) return;
-    deleteCompMutation.mutate(id);
+  const deleteComp = async (id) => {
+    const ok = await ask({ title: 'Delete component?', message: 'This will permanently delete this inventory component.' });
+    if (ok) deleteCompMutation.mutate(id);
   };
 
   // ── Filtered display ──
@@ -393,7 +395,7 @@ export default function Inventory() {
   if (typesLoading || groupsLoading) return <PageLoading />;
 
   return (
-    <>
+    <>{confirmModal}
       {/* Header */}
       <div className="flex items-center justify-between mb-7 animate-fade-in">
         <div>
@@ -506,8 +508,8 @@ export default function Inventory() {
       {/* Group Modal */}
       {showGroupModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50" onClick={() => setShowGroupModal(false)}>
-          <div className="glass-strong rounded-2xl p-7 w-[460px] max-w-[95vw] shadow-2xl animate-slide-up" onClick={e => e.stopPropagation()}>
-            <h2 className="text-lg font-semibold text-gray-100 mb-5">{editGroup ? 'Edit Group' : 'New Group'}</h2>
+          <div className="modal-surface p-7 w-[460px] max-w-[95vw]" onClick={e => e.stopPropagation()}>
+            <h2 className="text-lg font-semibold text-gray-800 mb-5">{editGroup ? 'Edit Group' : 'New Group'}</h2>
             <form onSubmit={e => { e.preventDefault(); saveGroupMutation.mutate(groupForm); }} className="space-y-4">
               <div>
                 <label className="block text-[11px] font-medium uppercase tracking-wider text-gray-500 mb-1.5">Group Name</label>
@@ -524,7 +526,7 @@ export default function Inventory() {
                 <textarea rows={2} value={groupForm.description} onChange={e => setGroupForm({ ...groupForm, description: e.target.value })} />
               </div>
               <div className="flex gap-2 justify-end pt-1">
-                <button type="button" className="px-4 py-2 rounded-lg bg-white/[0.04] border border-white/[0.08] text-gray-400 hover:bg-white/[0.08] text-sm transition-all" onClick={() => setShowGroupModal(false)}>Cancel</button>
+                <button type="button" className="px-4 py-2 rounded-lg bg-gray-100 border border-gray-200 text-gray-600 hover:bg-gray-200 text-sm transition-all" onClick={() => setShowGroupModal(false)}>Cancel</button>
                 <button type="submit" className="px-4 py-2 rounded-lg bg-brand-500 hover:bg-brand-400 text-gray-100 text-sm font-medium transition-all" disabled={saveGroupMutation.isPending}>
                   {editGroup ? 'Save' : 'Create Group'}
                 </button>
@@ -537,8 +539,8 @@ export default function Inventory() {
       {/* Component Modal */}
       {showCompModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50" onClick={() => setShowCompModal(false)}>
-          <div className="glass-strong rounded-2xl p-7 w-[520px] max-w-[95vw] shadow-2xl animate-slide-up" onClick={e => e.stopPropagation()}>
-            <h2 className="text-lg font-semibold text-gray-100 mb-5">{editComp ? 'Edit Component' : 'Add Component'}</h2>
+          <div className="modal-surface p-7 w-[520px] max-w-[95vw]" onClick={e => e.stopPropagation()}>
+            <h2 className="text-lg font-semibold text-gray-800 mb-5">{editComp ? 'Edit Component' : 'Add Component'}</h2>
             <form onSubmit={e => { e.preventDefault(); saveCompMutation.mutate({ ...compForm, group: compForm.group || activeGroup || groups[0]?._id }); }} className="space-y-4">
               {!editComp && (
                 <div>
@@ -581,7 +583,7 @@ export default function Inventory() {
                 <textarea rows={2} value={compForm.notes} onChange={e => setCompForm({ ...compForm, notes: e.target.value })} />
               </div>
               <div className="flex gap-2 justify-end pt-1">
-                <button type="button" className="px-4 py-2 rounded-lg bg-white/[0.04] border border-white/[0.08] text-gray-400 hover:bg-white/[0.08] text-sm transition-all" onClick={() => setShowCompModal(false)}>Cancel</button>
+                <button type="button" className="px-4 py-2 rounded-lg bg-gray-100 border border-gray-200 text-gray-600 hover:bg-gray-200 text-sm transition-all" onClick={() => setShowCompModal(false)}>Cancel</button>
                 <button type="submit" className="px-4 py-2 rounded-lg bg-brand-500 hover:bg-brand-400 text-gray-100 text-sm font-medium transition-all" disabled={saveCompMutation.isPending}>
                   {editComp ? 'Save Changes' : 'Add Component'}
                 </button>
@@ -594,8 +596,8 @@ export default function Inventory() {
       {/* Adjust Stock Modal */}
       {showAdjustModal && adjustComp && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50" onClick={() => setShowAdjustModal(false)}>
-          <div className="glass-strong rounded-2xl p-7 w-[460px] max-w-[95vw] shadow-2xl animate-slide-up" onClick={e => e.stopPropagation()}>
-            <h2 className="text-lg font-semibold text-gray-100 mb-4">Adjust Stock — {adjustComp.name}</h2>
+          <div className="modal-surface p-7 w-[460px] max-w-[95vw]" onClick={e => e.stopPropagation()}>
+            <h2 className="text-lg font-semibold text-gray-800 mb-4">Adjust Stock — {adjustComp.name}</h2>
             <div className="bg-white/[0.03] rounded-lg px-3.5 py-3 mb-5 text-sm">
               <div className="flex gap-6 text-gray-400">
                 <span>Current stock: <strong className="text-gray-200">{adjustComp.inStock} {adjustComp.unit}</strong></span>
@@ -618,7 +620,7 @@ export default function Inventory() {
                 </div>
               </div>
               <div className="flex gap-2 justify-end pt-1">
-                <button type="button" className="px-4 py-2 rounded-lg bg-white/[0.04] border border-white/[0.08] text-gray-400 hover:bg-white/[0.08] text-sm transition-all" onClick={() => setShowAdjustModal(false)}>Cancel</button>
+                <button type="button" className="px-4 py-2 rounded-lg bg-gray-100 border border-gray-200 text-gray-600 hover:bg-gray-200 text-sm transition-all" onClick={() => setShowAdjustModal(false)}>Cancel</button>
                 <button type="submit" className="px-4 py-2 rounded-lg bg-brand-500 hover:bg-brand-400 text-gray-100 text-sm font-medium transition-all" disabled={adjustMutation.isPending}>Apply Adjustment</button>
               </div>
             </form>

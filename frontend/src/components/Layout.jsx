@@ -31,7 +31,7 @@ export default function Layout() {
   return (
     <div className="flex min-h-screen">
       {/* ── Sidebar ───────────────────────────────────────────── */}
-      <aside className="w-[230px] fixed top-0 left-0 bottom-0 flex flex-col bg-brand-800/80 dark:bg-brand-900/90 backdrop-blur-2xl border-r border-white/[0.06] z-20">
+      <aside className="w-[230px] fixed top-0 left-0 bottom-0 flex flex-col bg-brand-900 backdrop-blur-2xl border-r border-white/[0.06] z-20">
         {/* Logo */}
         <div className="px-5 pt-7 pb-6">
           <span className="text-base font-semibold tracking-wide text-gray-100">
@@ -51,7 +51,7 @@ export default function Layout() {
               key={r.key}
               to={r.path}
               className={({ isActive }) =>
-                `flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-normal transition-all duration-150 ${isActive ? "bg-white/[0.08] text-gray-100" : "text-gray-400 hover:bg-white/[0.05] hover:text-gray-200"}`
+                `flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium transition-all duration-150 ${isActive ? "bg-gold/10 text-gold" : "text-gray-500 hover:bg-white/[0.05] hover:text-gray-200"}`
               }
             >
               {r.label}
@@ -61,7 +61,7 @@ export default function Layout() {
             <NavLink
               to="/admin"
               className={({ isActive }) =>
-                `flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-normal transition-all duration-150 ${isActive ? "bg-white/[0.08] text-gray-100" : "text-gray-400 hover:bg-white/[0.05] hover:text-gray-200"}`
+                `flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium transition-all duration-150 ${isActive ? "bg-gold/10 text-gold" : "text-gray-500 hover:bg-white/[0.05] hover:text-gray-200"}`
               }
             >
               Admin
