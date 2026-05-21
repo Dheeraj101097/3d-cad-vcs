@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import { STLLoader } from 'three/examples/jsm/loaders/STLLoader';
+import { API_BASE } from '../api';
 
 export default function StlViewer({ versionId }) {
   const mountRef = useRef(null);
@@ -20,7 +21,7 @@ export default function StlViewer({ versionId }) {
     setLoading(true);
 
     const token = localStorage.getItem('cad_token');
-    fetch(`/api/stl/${versionId}/file`, { headers: { Authorization: `Bearer ${token}` } })
+    fetch(`${API_BASE}/api/stl/${versionId}/file`, { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.arrayBuffer())
       .then(buffer => {
         setLoading(false);

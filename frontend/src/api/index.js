@@ -1,5 +1,9 @@
 import axios from 'axios';
 
+// API base URL — empty in dev (Vite proxy handles /api), set via VITE_API_URL in prod.
+export const API_BASE = import.meta.env.VITE_API_URL || '';
+axios.defaults.baseURL = API_BASE;
+
 // ── Products ──────────────────────────────────────────────────────────
 export const getProducts   = () => axios.get('/api/products').then(r => r.data);
 export const createProduct = (data) => axios.post('/api/products', data).then(r => r.data);
@@ -72,8 +76,8 @@ export const updateUserPermissions = ({ id, resource, bits }) =>
 // ── Download utility (uses fetch so browser triggers save dialog) ─────
 export const downloadVersion = async (v, type = 'gcode') => {
   const token = localStorage.getItem('cad_token');
-  const url = type === 'stl' ? `/api/stl/${v._id}/download` : `/api/gcodes/${v._id}/download`;
-  const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+  const path = type === 'stl' ? `/api/stl/${v._id}/download` : `/api/gcodes/${v._id}/download`;
+  const res = await fetch(`${API_BASE}${path}`, { headers: { Authorization: `Bearer ${token}` } });
   if (!res.ok) throw new Error('Download failed');
   const blob = await res.blob();
   const a = document.createElement('a');

@@ -9,6 +9,8 @@ backend/.env
 backend/.env.*
 agent/.env
 bridge/.env
+frontend/.env
+frontend/.env.*
 
 # ── Uploaded files ────────────────────────────────────────────────────────────
 backend/uploads/
